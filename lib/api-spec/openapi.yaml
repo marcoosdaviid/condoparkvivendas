@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Condo Parking Spot Sharing API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User operations
+  - name: spots
+    description: Parking spot operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,121 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/register:
+    post:
+      operationId: registerUser
+      tags: [users]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Phone already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/login:
+    post:
+      operationId: loginUser
+      tags: [users]
+      summary: Login by phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots:
+    get:
+      operationId: getAvailableSpots
+      tags: [spots]
+      summary: Get available parking spots for today
+      responses:
+        "200":
+          description: List of available spots today
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParkingSpot"
+
+    post:
+      operationId: createSpot
+      tags: [spots]
+      summary: Share a parking spot as available today
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSpotInput"
+      responses:
+        "201":
+          description: Spot created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "409":
+          description: User already has a spot listed today
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/{id}:
+    delete:
+      operationId: removeSpot
+      tags: [spots]
+      summary: Remove a parking spot listing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Spot removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +152,108 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        apartment:
+          type: string
+        phone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - apartment
+        - phone
+        - createdAt
+
+    RegisterUserInput:
+      type: object
+      properties:
+        name:
+          type: string
+        apartment:
+          type: string
+        phone:
+          type: string
+      required:
+        - name
+        - apartment
+        - phone
+
+    LoginInput:
+      type: object
+      properties:
+        phone:
+          type: string
+      required:
+        - phone
+
+    ParkingSpot:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        userApartment:
+          type: string
+        userPhone:
+          type: string
+        availableFrom:
+          type: string
+        availableUntil:
+          type: string
+        date:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - userName
+        - userApartment
+        - userPhone
+        - availableFrom
+        - availableUntil
+        - date
+        - createdAt
+
+    CreateSpotInput:
+      type: object
+      properties:
+        userId:
+          type: integer
+        availableFrom:
+          type: string
+        availableUntil:
+          type: string
+      required:
+        - userId
+        - availableFrom
+        - availableUntil

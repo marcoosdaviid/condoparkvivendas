@@ -1,0 +1,14 @@
+packages:
+  "framer-motion": "For page transitions, list stagger effects, and interactive animations"
+  "react-hook-form": "For form state management in login, register, and create spot dialogs"
+  "@hookform/resolvers": "For integrating Zod schemas with react-hook-form"
+
+images:
+  - path: "artifacts/parking-app/public/images/hero-bg.png"
+    description: "Clean minimal abstract background with soft gradient mesh in calm blue, indigo, and slate tones, highly premium and modern feel"
+    aspect_ratio: "9:16"
+
+notes:
+  - Auth is handled purely via localStorage storing the User object returned from the API, bypassing complex session cookies per requirements.
+  - React Query hooks are imported from @workspace/api-client-react.
+  - Using a mobile-first column layout (max-w-md) to mimic a premium native app feel on desktop.

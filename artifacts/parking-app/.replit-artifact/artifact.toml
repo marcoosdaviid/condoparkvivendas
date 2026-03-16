@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Condo Parking"
+version = "1.0.0"
+id = "artifacts/parking-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 25996
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/parking-app run dev"
+
+[services.env]
+PORT = "25996"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/parking-app", "run", "build"]
+publicDir = "artifacts/parking-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
