@@ -54,8 +54,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const createSpotSchema = z.object({
-  availableFrom: z.string().min(1, "Start time is required"),
-  availableUntil: z.string().min(1, "End time is required"),
+  availableFrom: z.string().min(1, "Horário de início é obrigatório"),
+  availableUntil: z.string().min(1, "Horário de término é obrigatório"),
 });
 
 const getInitials = (name: string) => 
@@ -70,7 +70,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24">
-      {/* HEADER */}
+      {/* CABEÇALHO */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -94,31 +94,31 @@ export default function Dashboard() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-semibold leading-none">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground leading-none">Apt {user?.apartment}</p>
+                  <p className="text-xs text-muted-foreground leading-none">Apto {user?.apartment}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Sair</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* MAIN CONTENT */}
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="max-w-md mx-auto p-4 space-y-6 mt-4">
         
-        {/* WELCOME AREA */}
+        {/* BOAS-VINDAS */}
         <div className="px-1">
           <h2 className="text-2xl font-display font-semibold text-slate-900 dark:text-white">
-            Hello, {user?.name?.split(' ')[0]} 👋
+            Olá, {user?.name?.split(' ')[0]} 👋
           </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Here are the available spots for today.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Veja as vagas disponíveis hoje.</p>
         </div>
 
-        {/* HERO ACTION / OWN LISTING */}
+        {/* AÇÃO PRINCIPAL / ANÚNCIO DO USUÁRIO */}
         <AnimatePresence mode="popLayout">
           {isLoading ? (
              <Skeleton className="h-24 w-full rounded-2xl" />
@@ -143,11 +143,11 @@ export default function Dashboard() {
 
         <div className="h-px bg-slate-200 dark:bg-slate-800 w-full" />
 
-        {/* SPOTS LIST */}
+        {/* LISTA DE VAGAS */}
         <div className="space-y-4">
           <h3 className="font-display font-semibold text-lg text-slate-900 dark:text-slate-100 flex items-center gap-2 px-1">
             <MapPin className="w-5 h-5 text-primary" /> 
-            Available Today
+            Disponíveis Hoje
           </h3>
 
           {isLoading ? (
@@ -163,8 +163,8 @@ export default function Dashboard() {
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <CarFront className="w-8 h-8 text-slate-400 dark:text-slate-500" />
               </div>
-              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">No spots right now</h3>
-              <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-[250px] text-sm">Check back later or be the first to share your parking spot today!</p>
+              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Nenhuma vaga por aqui</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-[250px] text-sm">Volte mais tarde ou seja o primeiro a compartilhar sua vaga hoje!</p>
             </motion.div>
           ) : (
             <div className="space-y-4">
@@ -186,7 +186,7 @@ export default function Dashboard() {
   );
 }
 
-// --- SUB-COMPONENTS ---
+// --- SUBCOMPONENTES ---
 
 function CreateSpotDialog({ userId }: { userId: number }) {
   const [open, setOpen] = useState(false);
@@ -203,11 +203,11 @@ function CreateSpotDialog({ userId }: { userId: number }) {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetAvailableSpotsQueryKey() });
         setOpen(false);
-        toast({ title: "Spot shared successfully!", description: "Thank you for sharing with the community." });
+        toast({ title: "Vaga compartilhada!", description: "Obrigado por ajudar o condomínio." });
         form.reset();
       },
       onError: (err: any) => {
-         toast({ title: "Failed to share spot", description: err?.error || "An error occurred", variant: "destructive" });
+         toast({ title: "Erro ao compartilhar", description: err?.error || "Ocorreu um erro.", variant: "destructive" });
       }
     }
   });
@@ -217,21 +217,21 @@ function CreateSpotDialog({ userId }: { userId: number }) {
       <DialogTrigger asChild>
         <Button size="lg" className="w-full text-base h-16 rounded-2xl shadow-xl shadow-primary/25 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/30 transition-all font-semibold relative overflow-hidden group">
           <div className="absolute inset-0 bg-white/20 w-full h-full -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out skew-x-12" />
-          <Plus className="w-5 h-5 mr-2" /> Share My Spot Today
+          <Plus className="w-5 h-5 mr-2" /> Tenho uma vaga disponível hoje
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-display">Share Parking Spot</DialogTitle>
+          <DialogTitle className="text-xl font-display">Compartilhar Vaga</DialogTitle>
           <DialogDescription>
-            Set the time range your spot will be empty today.
+            Informe o horário em que sua vaga estará livre hoje.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v } }))} className="space-y-6 mt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="availableFrom">Available From</Label>
+              <Label htmlFor="availableFrom">Disponível das</Label>
               <Input 
                 type="time" 
                 id="availableFrom" 
@@ -243,7 +243,7 @@ function CreateSpotDialog({ userId }: { userId: number }) {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="availableUntil">Available Until</Label>
+              <Label htmlFor="availableUntil">Até</Label>
               <Input 
                 type="time" 
                 id="availableUntil" 
@@ -257,7 +257,7 @@ function CreateSpotDialog({ userId }: { userId: number }) {
           </div>
           
           <Button type="submit" className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25" disabled={isPending}>
-            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publish Listing"}
+            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar Anúncio"}
           </Button>
         </form>
       </DialogContent>
@@ -273,9 +273,9 @@ function ActiveListingCard({ spot }: { spot: ParkingSpot }) {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getGetAvailableSpotsQueryKey() });
-        toast({ title: "Listing removed", description: "Your spot is no longer shared." });
+        toast({ title: "Anúncio removido", description: "Sua vaga não está mais disponível." });
       },
-      onError: () => toast({ title: "Failed to remove", variant: "destructive" })
+      onError: () => toast({ title: "Erro ao remover", variant: "destructive" })
     }
   });
 
@@ -287,10 +287,10 @@ function ActiveListingCard({ spot }: { spot: ParkingSpot }) {
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            Active Listing
+            Anúncio Ativo
           </div>
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" /> Shared until {spot.availableUntil}
+            <Clock className="w-4 h-4" /> Disponível até {spot.availableUntil}
           </p>
         </div>
       </div>
@@ -299,20 +299,20 @@ function ActiveListingCard({ spot }: { spot: ParkingSpot }) {
         <AlertDialogTrigger asChild>
           <Button variant="outline" className="w-full h-12 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/5 border-destructive/20 shadow-sm bg-white dark:bg-slate-950" disabled={isPending}>
             {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-            Remove Listing
+            Remover Anúncio
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove listing?</AlertDialogTitle>
+            <AlertDialogTitle>Remover anúncio?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will immediately remove your spot from the available list. Other residents won't be able to contact you.
+              Sua vaga será removida da lista imediatamente. Os demais moradores não poderão mais entrar em contato.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => removeSpot({ id: spot.id })} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Remove
+              Remover
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -333,19 +333,19 @@ function SpotCard({ spot }: { spot: ParkingSpot }) {
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate font-display text-lg">{spot.userName}</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-            <Building2 className="w-3.5 h-3.5" /> Apt {spot.userApartment}
+            <Building2 className="w-3.5 h-3.5" /> Apto {spot.userApartment}
           </p>
           
           <div className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-2.5 w-fit border border-slate-200/50 dark:border-slate-700/50">
             <Clock className="w-4 h-4 text-primary" />
-            {spot.availableFrom} <span className="text-slate-400 font-normal mx-1">to</span> {spot.availableUntil}
+            {spot.availableFrom} <span className="text-slate-400 font-normal mx-1">às</span> {spot.availableUntil}
           </div>
         </div>
       </div>
       <div className="px-5 pb-5 pt-0">
         <Button asChild className="w-full font-semibold shadow-sm h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 hover:-translate-y-0.5 transition-transform" variant="default">
           <a href={`tel:${spot.userPhone}`}>
-            <Phone className="w-4 h-4 mr-2" /> Contact
+            <Phone className="w-4 h-4 mr-2" /> Entrar em Contato
           </a>
         </Button>
       </div>

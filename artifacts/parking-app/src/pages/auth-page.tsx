@@ -14,13 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 const loginSchema = z.object({
-  phone: z.string().min(10, "Please enter a valid phone number (min 10 chars)"),
+  phone: z.string().min(10, "Informe um número de telefone válido (mín. 10 dígitos)"),
 });
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  apartment: z.string().min(1, "Apartment number is required"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  name: z.string().min(2, "Nome é obrigatório"),
+  apartment: z.string().min(1, "Número do apartamento é obrigatório"),
+  phone: z.string().min(10, "Informe um número de telefone válido"),
 });
 
 export default function AuthPage() {
@@ -31,13 +31,13 @@ export default function AuthPage() {
   const { mutate: doLogin, isPending: isLoggingIn } = useLoginUser({
     mutation: {
       onSuccess: (data) => {
-        toast({ title: "Welcome back!", description: "Successfully logged in." });
+        toast({ title: "Bem-vindo(a) de volta!", description: "Login realizado com sucesso." });
         login(data);
       },
       onError: (err: any) => {
         toast({ 
-          title: "Login Failed", 
-          description: err?.error || err?.message || "User not found or invalid phone.", 
+          title: "Falha no login", 
+          description: err?.error || err?.message || "Telefone não encontrado. Verifique o número.", 
           variant: "destructive" 
         });
       },
@@ -47,13 +47,13 @@ export default function AuthPage() {
   const { mutate: doRegister, isPending: isRegistering } = useRegisterUser({
     mutation: {
       onSuccess: (data) => {
-        toast({ title: "Account created!", description: "Successfully registered." });
+        toast({ title: "Conta criada!", description: "Cadastro realizado com sucesso." });
         login(data);
       },
       onError: (err: any) => {
         toast({ 
-          title: "Registration Failed", 
-          description: err?.error || err?.message || "Could not create account.", 
+          title: "Falha no cadastro", 
+          description: err?.error || err?.message || "Não foi possível criar a conta.", 
           variant: "destructive" 
         });
       },
@@ -75,7 +75,7 @@ export default function AuthPage() {
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 z-0" />
       <img 
         src={`${import.meta.env.BASE_URL}images/hero-bg.png`} 
-        alt="Background" 
+        alt="Fundo" 
         className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay pointer-events-none z-0" 
       />
       
@@ -90,23 +90,23 @@ export default function AuthPage() {
             <CarFront className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">CondoPark</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Share and find parking spots in your building.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Compartilhe e encontre vagas no seu condomínio.</p>
         </div>
 
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8 h-12 rounded-xl p-1 bg-slate-100/80 dark:bg-slate-800/80">
-              <TabsTrigger value="login" className="rounded-lg text-sm font-semibold">Login</TabsTrigger>
-              <TabsTrigger value="register" className="rounded-lg text-sm font-semibold">Register</TabsTrigger>
+              <TabsTrigger value="login" className="rounded-lg text-sm font-semibold">Entrar</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-lg text-sm font-semibold">Cadastrar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="mt-0">
               <form onSubmit={loginForm.handleSubmit((v) => doLogin({ data: v }))} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="login-phone" className="text-slate-700 dark:text-slate-300">Phone Number</Label>
+                  <Label htmlFor="login-phone" className="text-slate-700 dark:text-slate-300">Número de Telefone</Label>
                   <Input 
                     id="login-phone" 
-                    placeholder="e.g. 555-0123" 
+                    placeholder="ex: 11 99999-0000" 
                     className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
                     {...loginForm.register("phone")} 
                   />
@@ -116,7 +116,7 @@ export default function AuthPage() {
                 </div>
                 <Button type="submit" className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all" disabled={isLoggingIn}>
                   {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                    <>Sign In <ArrowRight className="w-4 h-4 ml-2" /></>
+                    <>Entrar <ArrowRight className="w-4 h-4 ml-2" /></>
                   )}
                 </Button>
               </form>
@@ -125,10 +125,10 @@ export default function AuthPage() {
             <TabsContent value="register" className="mt-0">
               <form onSubmit={registerForm.handleSubmit((v) => doRegister({ data: v }))} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="reg-name" className="text-slate-700 dark:text-slate-300">Full Name</Label>
+                  <Label htmlFor="reg-name" className="text-slate-700 dark:text-slate-300">Nome Completo</Label>
                   <Input 
                     id="reg-name" 
-                    placeholder="Jane Doe" 
+                    placeholder="João da Silva" 
                     className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
                     {...registerForm.register("name")} 
                   />
@@ -138,10 +138,10 @@ export default function AuthPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="reg-apt" className="text-slate-700 dark:text-slate-300">Apartment Number</Label>
+                  <Label htmlFor="reg-apt" className="text-slate-700 dark:text-slate-300">Número do Apartamento</Label>
                   <Input 
                     id="reg-apt" 
-                    placeholder="Apt 4B" 
+                    placeholder="Apto 4B" 
                     className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
                     {...registerForm.register("apartment")} 
                   />
@@ -151,10 +151,10 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="reg-phone" className="text-slate-700 dark:text-slate-300">Phone Number</Label>
+                  <Label htmlFor="reg-phone" className="text-slate-700 dark:text-slate-300">Número de Telefone</Label>
                   <Input 
                     id="reg-phone" 
-                    placeholder="e.g. 555-0123" 
+                    placeholder="ex: 11 99999-0000" 
                     className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
                     {...registerForm.register("phone")} 
                   />
@@ -164,7 +164,7 @@ export default function AuthPage() {
                 </div>
 
                 <Button type="submit" className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all" disabled={isRegistering}>
-                  {isRegistering ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
+                  {isRegistering ? <Loader2 className="w-5 h-5 animate-spin" /> : "Criar Conta"}
                 </Button>
               </form>
             </TabsContent>
