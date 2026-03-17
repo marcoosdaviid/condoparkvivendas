@@ -13,6 +13,8 @@ tags:
     description: User operations
   - name: spots
     description: Parking spot operations
+  - name: requests
+    description: Parking spot request operations
 paths:
   /healthz:
     get:
@@ -142,6 +144,107 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /requests:
+    get:
+      operationId: getSpotRequests
+      tags: [requests]
+      summary: Get all parking spot requests
+      responses:
+        "200":
+          description: List of spot requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SpotRequest"
+
+    post:
+      operationId: createSpotRequest
+      tags: [requests]
+      summary: Create a parking spot request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSpotRequestInput"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpotRequest"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests/{id}/offer:
+    post:
+      operationId: offerSpotForRequest
+      tags: [requests]
+      summary: Offer a parking spot for a request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfferSpotInput"
+      responses:
+        "200":
+          description: Request matched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpotRequest"
+        "404":
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Request already matched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests/{id}:
+    delete:
+      operationId: deleteSpotRequest
+      tags: [requests]
+      summary: Delete a spot request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -257,3 +360,83 @@ components:
         - userId
         - availableFrom
         - availableUntil
+
+    SpotRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        userName:
+          type: string
+        userApartment:
+          type: string
+        userPhone:
+          type: string
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [open, matched]
+        offeredByUserId:
+          type: integer
+          nullable: true
+        offeredByUserName:
+          type: string
+          nullable: true
+        offeredByUserPhone:
+          type: string
+          nullable: true
+        offeredByUserApartment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - userName
+        - userApartment
+        - userPhone
+        - date
+        - startTime
+        - endTime
+        - status
+        - createdAt
+
+    CreateSpotRequestInput:
+      type: object
+      properties:
+        userId:
+          type: integer
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        reason:
+          type: string
+          nullable: true
+      required:
+        - userId
+        - date
+        - startTime
+        - endTime
+
+    OfferSpotInput:
+      type: object
+      properties:
+        offeredByUserId:
+          type: integer
+      required:
+        - offeredByUserId

@@ -18,11 +18,14 @@ import type {
 
 import type {
   CreateSpotInput,
+  CreateSpotRequestInput,
   ErrorResponse,
   HealthStatus,
   LoginInput,
+  OfferSpotInput,
   ParkingSpot,
   RegisterUserInput,
+  SpotRequest,
   SuccessResponse,
   User,
 } from "./api.schemas";
@@ -527,4 +530,336 @@ export const useRemoveSpot = <
   TContext
 > => {
   return useMutation(getRemoveSpotMutationOptions(options));
+};
+
+/**
+ * @summary Get all parking spot requests
+ */
+export const getGetSpotRequestsUrl = () => {
+  return `/api/requests`;
+};
+
+export const getSpotRequests = async (
+  options?: RequestInit,
+): Promise<SpotRequest[]> => {
+  return customFetch<SpotRequest[]>(getGetSpotRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSpotRequestsQueryKey = () => {
+  return [`/api/requests`] as const;
+};
+
+export const getGetSpotRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSpotRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSpotRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSpotRequestsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSpotRequests>>> = ({
+    signal,
+  }) => getSpotRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSpotRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSpotRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSpotRequests>>
+>;
+export type GetSpotRequestsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all parking spot requests
+ */
+
+export function useGetSpotRequests<
+  TData = Awaited<ReturnType<typeof getSpotRequests>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSpotRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSpotRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a parking spot request
+ */
+export const getCreateSpotRequestUrl = () => {
+  return `/api/requests`;
+};
+
+export const createSpotRequest = async (
+  createSpotRequestInput: CreateSpotRequestInput,
+  options?: RequestInit,
+): Promise<SpotRequest> => {
+  return customFetch<SpotRequest>(getCreateSpotRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSpotRequestInput),
+  });
+};
+
+export const getCreateSpotRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSpotRequest>>,
+    TError,
+    { data: BodyType<CreateSpotRequestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSpotRequest>>,
+  TError,
+  { data: BodyType<CreateSpotRequestInput> },
+  TContext
+> => {
+  const mutationKey = ["createSpotRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSpotRequest>>,
+    { data: BodyType<CreateSpotRequestInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSpotRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSpotRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSpotRequest>>
+>;
+export type CreateSpotRequestMutationBody = BodyType<CreateSpotRequestInput>;
+export type CreateSpotRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a parking spot request
+ */
+export const useCreateSpotRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSpotRequest>>,
+    TError,
+    { data: BodyType<CreateSpotRequestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSpotRequest>>,
+  TError,
+  { data: BodyType<CreateSpotRequestInput> },
+  TContext
+> => {
+  return useMutation(getCreateSpotRequestMutationOptions(options));
+};
+
+/**
+ * @summary Offer a parking spot for a request
+ */
+export const getOfferSpotForRequestUrl = (id: number) => {
+  return `/api/requests/${id}/offer`;
+};
+
+export const offerSpotForRequest = async (
+  id: number,
+  offerSpotInput: OfferSpotInput,
+  options?: RequestInit,
+): Promise<SpotRequest> => {
+  return customFetch<SpotRequest>(getOfferSpotForRequestUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(offerSpotInput),
+  });
+};
+
+export const getOfferSpotForRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof offerSpotForRequest>>,
+    TError,
+    { id: number; data: BodyType<OfferSpotInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof offerSpotForRequest>>,
+  TError,
+  { id: number; data: BodyType<OfferSpotInput> },
+  TContext
+> => {
+  const mutationKey = ["offerSpotForRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof offerSpotForRequest>>,
+    { id: number; data: BodyType<OfferSpotInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return offerSpotForRequest(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type OfferSpotForRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof offerSpotForRequest>>
+>;
+export type OfferSpotForRequestMutationBody = BodyType<OfferSpotInput>;
+export type OfferSpotForRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Offer a parking spot for a request
+ */
+export const useOfferSpotForRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof offerSpotForRequest>>,
+    TError,
+    { id: number; data: BodyType<OfferSpotInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof offerSpotForRequest>>,
+  TError,
+  { id: number; data: BodyType<OfferSpotInput> },
+  TContext
+> => {
+  return useMutation(getOfferSpotForRequestMutationOptions(options));
+};
+
+/**
+ * @summary Delete a spot request
+ */
+export const getDeleteSpotRequestUrl = (id: number) => {
+  return `/api/requests/${id}`;
+};
+
+export const deleteSpotRequest = async (
+  id: number,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getDeleteSpotRequestUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSpotRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSpotRequest>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSpotRequest>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSpotRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSpotRequest>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSpotRequest(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSpotRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSpotRequest>>
+>;
+
+export type DeleteSpotRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a spot request
+ */
+export const useDeleteSpotRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSpotRequest>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSpotRequest>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSpotRequestMutationOptions(options));
 };

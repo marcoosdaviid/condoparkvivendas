@@ -52,3 +52,41 @@ export interface CreateSpotInput {
   availableFrom: string;
   availableUntil: string;
 }
+
+export type SpotRequestStatus =
+  (typeof SpotRequestStatus)[keyof typeof SpotRequestStatus];
+
+export const SpotRequestStatus = {
+  open: "open",
+  matched: "matched",
+} as const;
+
+export interface SpotRequest {
+  id: number;
+  userId: number;
+  userName: string;
+  userApartment: string;
+  userPhone: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason?: string | null;
+  status: SpotRequestStatus;
+  offeredByUserId?: number | null;
+  offeredByUserName?: string | null;
+  offeredByUserPhone?: string | null;
+  offeredByUserApartment?: string | null;
+  createdAt: string;
+}
+
+export interface CreateSpotRequestInput {
+  userId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason?: string | null;
+}
+
+export interface OfferSpotInput {
+  offeredByUserId: number;
+}

@@ -76,3 +76,76 @@ export const RemoveSpotParams = zod.object({
 export const RemoveSpotResponse = zod.object({
   message: zod.string(),
 });
+
+/**
+ * @summary Get all parking spot requests
+ */
+export const GetSpotRequestsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  date: zod.string(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+  reason: zod.string().nullish(),
+  status: zod.enum(["open", "matched"]),
+  offeredByUserId: zod.number().nullish(),
+  offeredByUserName: zod.string().nullish(),
+  offeredByUserPhone: zod.string().nullish(),
+  offeredByUserApartment: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+export const GetSpotRequestsResponse = zod.array(GetSpotRequestsResponseItem);
+
+/**
+ * @summary Create a parking spot request
+ */
+export const CreateSpotRequestBody = zod.object({
+  userId: zod.number(),
+  date: zod.string(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+  reason: zod.string().nullish(),
+});
+
+/**
+ * @summary Offer a parking spot for a request
+ */
+export const OfferSpotForRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const OfferSpotForRequestBody = zod.object({
+  offeredByUserId: zod.number(),
+});
+
+export const OfferSpotForRequestResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  date: zod.string(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+  reason: zod.string().nullish(),
+  status: zod.enum(["open", "matched"]),
+  offeredByUserId: zod.number().nullish(),
+  offeredByUserName: zod.string().nullish(),
+  offeredByUserPhone: zod.string().nullish(),
+  offeredByUserApartment: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a spot request
+ */
+export const DeleteSpotRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteSpotRequestResponse = zod.object({
+  message: zod.string(),
+});

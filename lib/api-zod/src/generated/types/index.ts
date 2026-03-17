@@ -7,10 +7,14 @@
  */
 
 export * from "./createSpotInput";
+export * from "./createSpotRequestInput";
 export * from "./errorResponse";
 export * from "./healthStatus";
 export * from "./loginInput";
+export * from "./offerSpotInput";
 export * from "./parkingSpot";
 export * from "./registerUserInput";
+export * from "./spotRequest";
+export * from "./spotRequestStatus";
 export * from "./successResponse";
 export * from "./user";
