@@ -247,7 +247,7 @@ function MySpotQuickButton({ spot, userId }: { spot: ParkingSpot; userId: number
   const statusConfig = {
     AVAILABLE:            { label: "Minha vaga ativa",        icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
     PENDING_CONFIRMATION: { label: "Confirmar uso",           icon: <UserCheck className="w-4 h-4 mb-0.5" />,    cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
-    OCCUPIED:             { label: "Marcar desocupada",       icon: <KeyRound className="w-4 h-4 mb-0.5" />,     cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
+    OCCUPIED:             { label: "Desocupar vaga",          icon: <KeyRound className="w-4 h-4 mb-0.5" />,     cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
     FINISHED:             { label: "Encerrada",               icon: <CircleCheck className="w-4 h-4 mb-0.5" />,  cls: "border-slate-200 bg-slate-50 text-slate-500" },
   }[spot.status] ?? { label: spot.status, icon: null, cls: "" };
 
