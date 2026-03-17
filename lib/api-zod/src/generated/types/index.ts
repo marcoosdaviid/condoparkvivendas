@@ -6,13 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./confirmOccupationInput";
 export * from "./createSpotInput";
 export * from "./createSpotRequestInput";
 export * from "./errorResponse";
+export * from "./expressInterestInput";
 export * from "./healthStatus";
 export * from "./loginInput";
 export * from "./offerSpotInput";
 export * from "./parkingSpot";
+export * from "./parkingSpotStatus";
 export * from "./registerUserInput";
 export * from "./spotRequest";
 export * from "./spotRequestStatus";

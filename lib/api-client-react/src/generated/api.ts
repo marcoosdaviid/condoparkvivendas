@@ -17,9 +17,11 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ConfirmOccupationInput,
   CreateSpotInput,
   CreateSpotRequestInput,
   ErrorResponse,
+  ExpressInterestInput,
   HealthStatus,
   LoginInput,
   OfferSpotInput,
@@ -40,7 +42,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -288,7 +289,7 @@ export const useLoginUser = <
 };
 
 /**
- * @summary Get available parking spots for today
+ * @summary Get all parking spots for today
  */
 export const getGetAvailableSpotsUrl = () => {
   return `/api/spots`;
@@ -339,7 +340,7 @@ export type GetAvailableSpotsQueryResult = NonNullable<
 export type GetAvailableSpotsQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get available parking spots for today
+ * @summary Get all parking spots for today
  */
 
 export function useGetAvailableSpots<
@@ -530,6 +531,264 @@ export const useRemoveSpot = <
   TContext
 > => {
   return useMutation(getRemoveSpotMutationOptions(options));
+};
+
+/**
+ * @summary Express interest in a spot (AVAILABLE -> PENDING_CONFIRMATION)
+ */
+export const getExpressInterestUrl = (id: number) => {
+  return `/api/spots/${id}/interest`;
+};
+
+export const expressInterest = async (
+  id: number,
+  expressInterestInput: ExpressInterestInput,
+  options?: RequestInit,
+): Promise<ParkingSpot> => {
+  return customFetch<ParkingSpot>(getExpressInterestUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(expressInterestInput),
+  });
+};
+
+export const getExpressInterestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof expressInterest>>,
+    TError,
+    { id: number; data: BodyType<ExpressInterestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof expressInterest>>,
+  TError,
+  { id: number; data: BodyType<ExpressInterestInput> },
+  TContext
+> => {
+  const mutationKey = ["expressInterest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof expressInterest>>,
+    { id: number; data: BodyType<ExpressInterestInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return expressInterest(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExpressInterestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof expressInterest>>
+>;
+export type ExpressInterestMutationBody = BodyType<ExpressInterestInput>;
+export type ExpressInterestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Express interest in a spot (AVAILABLE -> PENDING_CONFIRMATION)
+ */
+export const useExpressInterest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof expressInterest>>,
+    TError,
+    { id: number; data: BodyType<ExpressInterestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof expressInterest>>,
+  TError,
+  { id: number; data: BodyType<ExpressInterestInput> },
+  TContext
+> => {
+  return useMutation(getExpressInterestMutationOptions(options));
+};
+
+/**
+ * @summary Confirm spot occupation (PENDING_CONFIRMATION -> OCCUPIED)
+ */
+export const getConfirmOccupationUrl = (id: number) => {
+  return `/api/spots/${id}/confirm`;
+};
+
+export const confirmOccupation = async (
+  id: number,
+  confirmOccupationInput: ConfirmOccupationInput,
+  options?: RequestInit,
+): Promise<ParkingSpot> => {
+  return customFetch<ParkingSpot>(getConfirmOccupationUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(confirmOccupationInput),
+  });
+};
+
+export const getConfirmOccupationMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmOccupation>>,
+    TError,
+    { id: number; data: BodyType<ConfirmOccupationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmOccupation>>,
+  TError,
+  { id: number; data: BodyType<ConfirmOccupationInput> },
+  TContext
+> => {
+  const mutationKey = ["confirmOccupation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmOccupation>>,
+    { id: number; data: BodyType<ConfirmOccupationInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return confirmOccupation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmOccupationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmOccupation>>
+>;
+export type ConfirmOccupationMutationBody = BodyType<ConfirmOccupationInput>;
+export type ConfirmOccupationMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Confirm spot occupation (PENDING_CONFIRMATION -> OCCUPIED)
+ */
+export const useConfirmOccupation = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmOccupation>>,
+    TError,
+    { id: number; data: BodyType<ConfirmOccupationInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmOccupation>>,
+  TError,
+  { id: number; data: BodyType<ConfirmOccupationInput> },
+  TContext
+> => {
+  return useMutation(getConfirmOccupationMutationOptions(options));
+};
+
+/**
+ * @summary Mark spot as vacated (OCCUPIED -> FINISHED or AVAILABLE)
+ */
+export const getVacateSpotUrl = (id: number) => {
+  return `/api/spots/${id}/vacate`;
+};
+
+export const vacateSpot = async (
+  id: number,
+  options?: RequestInit,
+): Promise<ParkingSpot> => {
+  return customFetch<ParkingSpot>(getVacateSpotUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getVacateSpotMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof vacateSpot>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof vacateSpot>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["vacateSpot"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof vacateSpot>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return vacateSpot(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VacateSpotMutationResult = NonNullable<
+  Awaited<ReturnType<typeof vacateSpot>>
+>;
+
+export type VacateSpotMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Mark spot as vacated (OCCUPIED -> FINISHED or AVAILABLE)
+ */
+export const useVacateSpot = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof vacateSpot>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof vacateSpot>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getVacateSpotMutationOptions(options));
 };
 
 /**

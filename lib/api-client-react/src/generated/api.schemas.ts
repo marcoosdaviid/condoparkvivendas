@@ -35,6 +35,16 @@ export interface LoginInput {
   phone: string;
 }
 
+export type ParkingSpotStatus =
+  (typeof ParkingSpotStatus)[keyof typeof ParkingSpotStatus];
+
+export const ParkingSpotStatus = {
+  AVAILABLE: "AVAILABLE",
+  PENDING_CONFIRMATION: "PENDING_CONFIRMATION",
+  OCCUPIED: "OCCUPIED",
+  FINISHED: "FINISHED",
+} as const;
+
 export interface ParkingSpot {
   id: number;
   userId: number;
@@ -44,6 +54,15 @@ export interface ParkingSpot {
   availableFrom: string;
   availableUntil: string;
   date: string;
+  status: ParkingSpotStatus;
+  interestedUserId?: number | null;
+  interestedUserName?: string | null;
+  interestedUserPhone?: string | null;
+  interestedUserApartment?: string | null;
+  occupantName?: string | null;
+  occupantApartment?: string | null;
+  carPlate?: string | null;
+  expectedExitTime?: string | null;
   createdAt: string;
 }
 
@@ -51,6 +70,17 @@ export interface CreateSpotInput {
   userId: number;
   availableFrom: string;
   availableUntil: string;
+}
+
+export interface ExpressInterestInput {
+  interestedUserId: number;
+}
+
+export interface ConfirmOccupationInput {
+  occupantName: string;
+  occupantApartment: string;
+  carPlate: string;
+  expectedExitTime: string;
 }
 
 export type SpotRequestStatus =

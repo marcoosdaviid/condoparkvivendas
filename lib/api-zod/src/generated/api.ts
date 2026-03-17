@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -40,7 +39,7 @@ export const LoginUserResponse = zod.object({
 });
 
 /**
- * @summary Get available parking spots for today
+ * @summary Get all parking spots for today
  */
 export const GetAvailableSpotsResponseItem = zod.object({
   id: zod.number(),
@@ -51,6 +50,20 @@ export const GetAvailableSpotsResponseItem = zod.object({
   availableFrom: zod.string(),
   availableUntil: zod.string(),
   date: zod.string(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
   createdAt: zod.date(),
 });
 export const GetAvailableSpotsResponse = zod.array(
@@ -75,6 +88,116 @@ export const RemoveSpotParams = zod.object({
 
 export const RemoveSpotResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary Express interest in a spot (AVAILABLE -> PENDING_CONFIRMATION)
+ */
+export const ExpressInterestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ExpressInterestBody = zod.object({
+  interestedUserId: zod.number(),
+});
+
+export const ExpressInterestResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  availableFrom: zod.string(),
+  availableUntil: zod.string(),
+  date: zod.string(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Confirm spot occupation (PENDING_CONFIRMATION -> OCCUPIED)
+ */
+export const ConfirmOccupationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ConfirmOccupationBody = zod.object({
+  occupantName: zod.string(),
+  occupantApartment: zod.string(),
+  carPlate: zod.string(),
+  expectedExitTime: zod.string(),
+});
+
+export const ConfirmOccupationResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  availableFrom: zod.string(),
+  availableUntil: zod.string(),
+  date: zod.string(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Mark spot as vacated (OCCUPIED -> FINISHED or AVAILABLE)
+ */
+export const VacateSpotParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const VacateSpotResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  availableFrom: zod.string(),
+  availableUntil: zod.string(),
+  date: zod.string(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
+  createdAt: zod.date(),
 });
 
 /**

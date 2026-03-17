@@ -9,6 +9,12 @@ export const parkingSpotsTable = pgTable("parking_spots", {
   availableFrom: text("available_from").notNull(),
   availableUntil: text("available_until").notNull(),
   date: text("date").notNull(),
+  status: text("status").notNull().default("AVAILABLE"),
+  interestedUserId: integer("interested_user_id").references(() => usersTable.id),
+  occupantName: text("occupant_name"),
+  occupantApartment: text("occupant_apartment"),
+  carPlate: text("car_plate"),
+  expectedExitTime: text("expected_exit_time"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

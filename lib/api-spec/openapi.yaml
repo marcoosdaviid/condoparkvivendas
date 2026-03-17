@@ -21,7 +21,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -84,10 +83,10 @@ paths:
     get:
       operationId: getAvailableSpots
       tags: [spots]
-      summary: Get available parking spots for today
+      summary: Get all parking spots for today
       responses:
         "200":
-          description: List of available spots today
+          description: List of spots today
           content:
             application/json:
               schema:
@@ -139,6 +138,111 @@ paths:
                 $ref: "#/components/schemas/SuccessResponse"
         "404":
           description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/{id}/interest:
+    post:
+      operationId: expressInterest
+      tags: [spots]
+      summary: Express interest in a spot (AVAILABLE -> PENDING_CONFIRMATION)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpressInterestInput"
+      responses:
+        "200":
+          description: Status updated to PENDING_CONFIRMATION
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "404":
+          description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Spot not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/{id}/confirm:
+    post:
+      operationId: confirmOccupation
+      tags: [spots]
+      summary: Confirm spot occupation (PENDING_CONFIRMATION -> OCCUPIED)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmOccupationInput"
+      responses:
+        "200":
+          description: Status updated to OCCUPIED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "404":
+          description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Spot not in PENDING_CONFIRMATION state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/{id}/vacate:
+    post:
+      operationId: vacateSpot
+      tags: [spots]
+      summary: Mark spot as vacated (OCCUPIED -> FINISHED or AVAILABLE)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status updated to FINISHED or AVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "404":
+          description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Spot not in OCCUPIED state
           content:
             application/json:
               schema:
@@ -252,24 +356,21 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
     SuccessResponse:
       type: object
       properties:
         message:
           type: string
-      required:
-        - message
+      required: [message]
 
     User:
       type: object
@@ -285,12 +386,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - name
-        - apartment
-        - phone
-        - createdAt
+      required: [id, name, apartment, phone, createdAt]
 
     RegisterUserInput:
       type: object
@@ -301,18 +397,14 @@ components:
           type: string
         phone:
           type: string
-      required:
-        - name
-        - apartment
-        - phone
+      required: [name, apartment, phone]
 
     LoginInput:
       type: object
       properties:
         phone:
           type: string
-      required:
-        - phone
+      required: [phone]
 
     ParkingSpot:
       type: object
@@ -333,6 +425,33 @@ components:
           type: string
         date:
           type: string
+        status:
+          type: string
+          enum: [AVAILABLE, PENDING_CONFIRMATION, OCCUPIED, FINISHED]
+        interestedUserId:
+          type: integer
+          nullable: true
+        interestedUserName:
+          type: string
+          nullable: true
+        interestedUserPhone:
+          type: string
+          nullable: true
+        interestedUserApartment:
+          type: string
+          nullable: true
+        occupantName:
+          type: string
+          nullable: true
+        occupantApartment:
+          type: string
+          nullable: true
+        carPlate:
+          type: string
+          nullable: true
+        expectedExitTime:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -345,6 +464,7 @@ components:
         - availableFrom
         - availableUntil
         - date
+        - status
         - createdAt
 
     CreateSpotInput:
@@ -356,10 +476,27 @@ components:
           type: string
         availableUntil:
           type: string
-      required:
-        - userId
-        - availableFrom
-        - availableUntil
+      required: [userId, availableFrom, availableUntil]
+
+    ExpressInterestInput:
+      type: object
+      properties:
+        interestedUserId:
+          type: integer
+      required: [interestedUserId]
+
+    ConfirmOccupationInput:
+      type: object
+      properties:
+        occupantName:
+          type: string
+        occupantApartment:
+          type: string
+        carPlate:
+          type: string
+        expectedExitTime:
+          type: string
+      required: [occupantName, occupantApartment, carPlate, expectedExitTime]
 
     SpotRequest:
       type: object
@@ -427,16 +564,11 @@ components:
         reason:
           type: string
           nullable: true
-      required:
-        - userId
-        - date
-        - startTime
-        - endTime
+      required: [userId, date, startTime, endTime]
 
     OfferSpotInput:
       type: object
       properties:
         offeredByUserId:
           type: integer
-      required:
-        - offeredByUserId
+      required: [offeredByUserId]
