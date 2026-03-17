@@ -430,7 +430,10 @@ function ConfirmOccupationDialog({
   });
   const trigger = (
     <Button variant={asInline ? "default" : "outline"} size="lg"
-      className={`rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`}>
+      className={asInline
+        ? `rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`
+        : `w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${triggerCls}`
+      }>
       {triggerIcon}
       <span className="leading-tight">{triggerLabel}</span>
     </Button>
@@ -496,8 +499,11 @@ function VacateButton({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant={asInline ? "default" : "outline"} size="lg"
-          className={`rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`} disabled={isPending}>
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : triggerIcon}
+          className={asInline
+            ? `rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`
+            : `w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${triggerCls}`
+          } disabled={isPending}>
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : triggerIcon}
           <span className="leading-tight">{triggerLabel}</span>
         </Button>
       </AlertDialogTrigger>
