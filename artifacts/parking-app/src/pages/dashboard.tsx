@@ -913,7 +913,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <MessageCircle className="w-4 h-4" /> Falar com dono da vaga
+                    <MessageCircle className="w-4 h-4" /> Solicitar vaga
                   </>
                 )}
               </Button>
