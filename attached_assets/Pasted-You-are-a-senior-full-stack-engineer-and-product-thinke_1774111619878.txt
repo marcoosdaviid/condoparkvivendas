@@ -1,0 +1,214 @@
+You are a senior full-stack engineer and product thinker.
+
+Adjust the existing CondoPark application with the following new features and behavior improvements.
+Keep UI clean, mobile-first, and consistent with the current design system.
+
+🅿️ 1 — Improve "Liberar vaga" feature (Recurring vs One-time availability)
+
+Currently users can only share a parking spot by selecting a specific date and time.
+
+Implement a new availability model:
+
+Add availability type selector
+
+When user clicks “Liberar minha vaga”, show:
+
+Availability Type:
+( ) Recorrente (dias da semana)
+( ) Pontual (data específica)
+
+If user selects Recorrente
+
+Show:
+
+Multi-select days of week:
+Sunday
+Monday
+Tuesday
+Wednesday
+Thursday
+Friday
+Saturday
+
+Time range:
+From
+To
+
+Store this as a recurring availability rule.
+
+Example:
+User shares spot every Monday and Wednesday from 09:00 to 17:00
+
+If user selects Pontual
+
+Show:
+
+Date picker
+Time range (From / To)
+
+Store this as a one-time availability.
+
+Backend model suggestion
+
+Availability:
+
+id
+ownerUserId
+type (RECURRING | ONE_TIME)
+daysOfWeek (array nullable)
+date (nullable)
+startTime
+endTime
+status (ACTIVE | BOOKED | EXPIRED)
+
+💬 2 — Add "Falar com dono da vaga" button
+
+When a user views an available spot and selects it:
+
+Show a primary CTA button:
+
+“Falar com dono da vaga”
+
+This button must:
+
+Open WhatsApp deep link
+Use owner phone number
+Pre-fill message:
+
+Oi! Solicitei sua vaga no CondoPark.
+Para aprovar, confirme a aprovação no link abaixo:
+{approval_link}
+
+Approval Link behavior
+
+Generate a unique approval link:
+
+Example:
+/approve-booking?requestId=XYZ&token=ABC
+
+When owner clicks:
+
+Booking is automatically approved
+Availability status updates
+Requester receives confirmation state in UI
+
+Booking Request model
+
+id
+availabilityId
+requesterUserId
+status (PENDING | APPROVED | REJECTED)
+approvalToken
+createdAt
+
+🚗 3 — Registration flow improvement (Requester Plate Requirement)
+
+During onboarding or profile edit:
+
+Add toggle:
+
+[ ] Quero solicitar vaga
+
+If user enables:
+
+Show required field:
+
+Car Plate (string)
+
+Rules:
+
+Required to request spots
+User cannot proceed requesting without plate saved
+
+User model:
+
+wantsToRequestSpot (boolean)
+carPlate (nullable)
+
+🅿️ 4 — Spot Owner Requirement (Parking Spot Number)
+
+Users who want to share / liberar vaga must register their parking spot number.
+
+This must be required:
+
+- During onboarding if user indicates they own a parking spot
+- Or inside profile edit for already registered users
+
+Add toggle:
+
+[ ] Possuo vaga para compartilhar
+
+If enabled:
+
+Show required field:
+
+Parking Spot Number (string or number)
+
+Rules:
+
+User cannot create availability without parking spot number registered
+User can edit this value later in profile settings
+
+User model:
+
+hasParkingSpot (boolean)
+parkingSpotNumber (nullable)
+
+📱 5 — Mandatory Phone Number Validation
+
+All users must validate their phone number.
+
+Registration must include:
+
+Phone number input
+Send verification code (OTP)
+
+User cannot:
+
+Share parking spot
+Request spot
+Open WhatsApp request flow
+Interact with availability
+
+Until:
+
+phoneVerified = true
+
+Suggested flow
+
+1. User enters phone
+2. System sends OTP (mock service is OK)
+3. User inputs code
+4. phoneVerified flag becomes true
+
+User model:
+
+phone
+phoneVerified (boolean)
+
+🧠 UX Improvements
+
+Keep modals lightweight
+Ensure mobile calendar usability
+Add success toast after:
+sharing availability
+booking approved
+Prevent invalid actions with clear messages
+
+Examples:
+
+"Valide seu telefone para continuar"
+"Cadastre a placa para solicitar vagas"
+"Cadastre o número da sua vaga para compartilhar disponibilidade"
+
+⚙️ Technical Expectations
+
+Maintain clean component separation
+Update state management properly
+Ensure approval link security (token validation)
+Avoid page reloads (SPA behavior)
+Keep WhatsApp link compatible with mobile browsers
+
+If something is unclear:
+
+Make reasonable product decisions prioritizing usability and simplicity.

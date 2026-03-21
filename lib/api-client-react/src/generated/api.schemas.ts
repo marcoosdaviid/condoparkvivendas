@@ -24,6 +24,8 @@ export interface User {
   phone: string;
   carPlate?: string | null;
   wantsToRequestSpot: boolean;
+  hasParkingSpot: boolean;
+  parkingSpotNumber?: string | null;
   phoneVerified: boolean;
   createdAt: string;
 }
@@ -34,6 +36,8 @@ export interface RegisterUserInput {
   phone: string;
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
+  hasParkingSpot?: boolean;
+  parkingSpotNumber?: string | null;
 }
 
 export interface LoginInput {
@@ -57,6 +61,8 @@ export interface VerifyOtpInput {
 export interface UpdateProfileInput {
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
+  hasParkingSpot?: boolean;
+  parkingSpotNumber?: string | null;
 }
 
 export type ParkingSpotSpotType =

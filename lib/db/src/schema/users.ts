@@ -9,6 +9,8 @@ export const usersTable = pgTable("users", {
   phone: text("phone").notNull().unique(),
   carPlate: text("car_plate"),
   wantsToRequestSpot: boolean("wants_to_request_spot").notNull().default(false),
+  hasParkingSpot: boolean("has_parking_spot").notNull().default(false),
+  parkingSpotNumber: text("parking_spot_number"),
   phoneVerified: boolean("phone_verified").notNull().default(false),
   otpCode: text("otp_code"),
   otpExpiry: timestamp("otp_expiry", { withTimezone: true }),

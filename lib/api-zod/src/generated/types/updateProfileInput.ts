@@ -9,4 +9,6 @@
 export interface UpdateProfileInput {
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
+  hasParkingSpot?: boolean;
+  parkingSpotNumber?: string | null;
 }

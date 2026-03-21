@@ -47,6 +47,8 @@ router.post("/users/register", async (req, res): Promise<void> => {
       phone: parsed.data.phone,
       carPlate: parsed.data.carPlate ?? null,
       wantsToRequestSpot: parsed.data.wantsToRequestSpot ?? false,
+      hasParkingSpot: parsed.data.hasParkingSpot ?? false,
+      parkingSpotNumber: parsed.data.parkingSpotNumber ?? null,
       phoneVerified: false,
     })
     .returning();
@@ -179,6 +181,8 @@ router.patch("/users/:id", async (req, res): Promise<void> => {
   const updates: Partial<typeof existing> = {};
   if (body.data.carPlate !== undefined) updates.carPlate = body.data.carPlate;
   if (body.data.wantsToRequestSpot !== undefined) updates.wantsToRequestSpot = body.data.wantsToRequestSpot;
+  if (body.data.hasParkingSpot !== undefined) updates.hasParkingSpot = body.data.hasParkingSpot;
+  if (body.data.parkingSpotNumber !== undefined) updates.parkingSpotNumber = body.data.parkingSpotNumber;
 
   const [updated] = await db
     .update(usersTable)

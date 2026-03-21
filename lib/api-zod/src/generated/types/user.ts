@@ -13,6 +13,8 @@ export interface User {
   phone: string;
   carPlate?: string | null;
   wantsToRequestSpot: boolean;
+  hasParkingSpot: boolean;
+  parkingSpotNumber?: string | null;
   phoneVerified: boolean;
   createdAt: Date;
 }

@@ -12,4 +12,6 @@ export interface RegisterUserInput {
   phone: string;
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
+  hasParkingSpot?: boolean;
+  parkingSpotNumber?: string | null;
 }

@@ -523,12 +523,17 @@ components:
           nullable: true
         wantsToRequestSpot:
           type: boolean
+        hasParkingSpot:
+          type: boolean
+        parkingSpotNumber:
+          type: string
+          nullable: true
         phoneVerified:
           type: boolean
         createdAt:
           type: string
           format: date-time
-      required: [id, name, apartment, phone, wantsToRequestSpot, phoneVerified, createdAt]
+      required: [id, name, apartment, phone, wantsToRequestSpot, hasParkingSpot, phoneVerified, createdAt]
 
     RegisterUserInput:
       type: object
@@ -544,6 +549,11 @@ components:
           nullable: true
         wantsToRequestSpot:
           type: boolean
+        hasParkingSpot:
+          type: boolean
+        parkingSpotNumber:
+          type: string
+          nullable: true
       required: [name, apartment, phone]
 
     LoginInput:
@@ -587,6 +597,11 @@ components:
           nullable: true
         wantsToRequestSpot:
           type: boolean
+        hasParkingSpot:
+          type: boolean
+        parkingSpotNumber:
+          type: string
+          nullable: true
 
     ParkingSpot:
       type: object

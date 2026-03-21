@@ -3,7 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { CarFront, Loader2, ArrowRight, Phone, ShieldCheck, Car, RefreshCw } from "lucide-react";
+import { CarFront, Loader2, ArrowRight, Phone, ShieldCheck, Car, RefreshCw, MapPin } from "lucide-react";
 import {
   useRegisterUser,
   useLoginUser,
@@ -30,6 +30,8 @@ const registerSchema = z.object({
   phone: z.string().min(10, "Informe um número de telefone válido"),
   wantsToRequestSpot: z.boolean().optional(),
   carPlate: z.string().optional(),
+  hasParkingSpot: z.boolean().optional(),
+  parkingSpotNumber: z.string().optional(),
 });
 
 const otpSchema = z.object({
@@ -42,6 +44,7 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [pendingUser, setPendingUser] = useState<User | null>(null);
   const [wantsToRequest, setWantsToRequest] = useState(false);
+  const [hasSpot, setHasSpot] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
 
   const { mutate: doLogin, isPending: isLoggingIn } = useLoginUser({
@@ -128,7 +131,7 @@ export default function AuthPage() {
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", apartment: "", phone: "", wantsToRequestSpot: false, carPlate: "" },
+    defaultValues: { name: "", apartment: "", phone: "", wantsToRequestSpot: false, carPlate: "", hasParkingSpot: false, parkingSpotNumber: "" },
   });
 
   const otpForm = useForm<z.infer<typeof otpSchema>>({
@@ -292,6 +295,8 @@ export default function AuthPage() {
                       phone: v.phone,
                       carPlate: v.wantsToRequestSpot && v.carPlate ? v.carPlate : undefined,
                       wantsToRequestSpot: v.wantsToRequestSpot,
+                      hasParkingSpot: v.hasParkingSpot,
+                      parkingSpotNumber: v.hasParkingSpot && v.parkingSpotNumber ? v.parkingSpotNumber : undefined,
                     },
                   })
                 )}
@@ -373,6 +378,45 @@ export default function AuthPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Possuo vaga para compartilhar</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Requer número da vaga</p>
+                      </div>
+                      <Switch
+                        checked={hasSpot}
+                        onCheckedChange={(v) => {
+                          setHasSpot(v);
+                          registerForm.setValue("hasParkingSpot", v);
+                        }}
+                      />
+                    </div>
+
+                    <AnimatePresence>
+                      {hasSpot && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-2 pt-3">
+                            <Label htmlFor="reg-spot-number" className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                              <MapPin className="w-4 h-4" /> Número da vaga
+                            </Label>
+                            <Input
+                              id="reg-spot-number"
+                              placeholder="Ex: 42 ou A-15"
+                              className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
+                              {...registerForm.register("parkingSpotNumber")}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
 
                 <Button

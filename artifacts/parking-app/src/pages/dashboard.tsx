@@ -91,6 +91,8 @@ const otpSchema = z.object({
 const profileSchema = z.object({
   carPlate: z.string().optional(),
   wantsToRequestSpot: z.boolean().optional(),
+  hasParkingSpot: z.boolean().optional(),
+  parkingSpotNumber: z.string().optional(),
 });
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -169,7 +171,14 @@ export default function Dashboard() {
                 )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <ProfileEditTrigger userId={user!.id} currentCarPlate={user?.carPlate} currentWants={user?.wantsToRequestSpot} onUpdate={login} />
+              <ProfileEditTrigger
+                userId={user!.id}
+                currentCarPlate={user?.carPlate}
+                currentWants={user?.wantsToRequestSpot}
+                currentHasSpot={user?.hasParkingSpot}
+                currentParkingSpotNumber={user?.parkingSpotNumber}
+                onUpdate={login}
+              />
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" /> Sair
@@ -204,7 +213,11 @@ export default function Dashboard() {
               </motion.div>
             ) : (
               <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <CreateSpotDialog userId={user!.id} phoneVerified={user?.phoneVerified ?? false} />
+                <CreateSpotDialog
+                  userId={user!.id}
+                  phoneVerified={user?.phoneVerified ?? false}
+                  parkingSpotNumber={user?.parkingSpotNumber}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -228,7 +241,7 @@ export default function Dashboard() {
         <AnimatePresence>
           {mySpot && (
             <motion.div key="owner-card" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-              <OwnerSpotCard spot={mySpot} />
+              <OwnerSpotCard spot={mySpot} parkingSpotNumber={user?.parkingSpotNumber} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -372,10 +385,12 @@ function PhoneVerificationBanner({ phone, onVerified }: { phone: string; onVerif
 }
 
 // ─── Profile Edit ────────────────────────────────────────────────────────────
-function ProfileEditTrigger({ userId, currentCarPlate, currentWants, onUpdate }: {
+function ProfileEditTrigger({ userId, currentCarPlate, currentWants, currentHasSpot, currentParkingSpotNumber, onUpdate }: {
   userId: number;
   currentCarPlate?: string | null;
   currentWants?: boolean;
+  currentHasSpot?: boolean;
+  currentParkingSpotNumber?: string | null;
   onUpdate: (user: any) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -394,8 +409,15 @@ function ProfileEditTrigger({ userId, currentCarPlate, currentWants, onUpdate }:
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { carPlate: currentCarPlate ?? "", wantsToRequestSpot: currentWants ?? false },
+    defaultValues: {
+      carPlate: currentCarPlate ?? "",
+      wantsToRequestSpot: currentWants ?? false,
+      hasParkingSpot: currentHasSpot ?? false,
+      parkingSpotNumber: currentParkingSpotNumber ?? "",
+    },
   });
+
+  const watchHasSpot = form.watch("hasParkingSpot");
 
   return (
     <>
@@ -407,31 +429,80 @@ function ProfileEditTrigger({ userId, currentCarPlate, currentWants, onUpdate }:
         <DialogContent className="sm:max-w-md rounded-3xl p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-display">Editar Perfil</DialogTitle>
-            <DialogDescription>Atualize sua placa e preferências.</DialogDescription>
+            <DialogDescription>Atualize suas preferências de vaga.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={form.handleSubmit((v) =>
-              mutate({ id: userId, data: { carPlate: v.carPlate || null, wantsToRequestSpot: v.wantsToRequestSpot } })
+              mutate({
+                id: userId,
+                data: {
+                  carPlate: v.carPlate || null,
+                  wantsToRequestSpot: v.wantsToRequestSpot,
+                  hasParkingSpot: v.hasParkingSpot,
+                  parkingSpotNumber: v.hasParkingSpot ? (v.parkingSpotNumber || null) : null,
+                },
+              })
             )}
-            className="space-y-5 mt-4"
+            className="space-y-4 mt-4"
           >
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5"><Car className="w-4 h-4" /> Placa do carro</Label>
               <Input placeholder="ABC1D23" className="h-12 rounded-xl uppercase" {...form.register("carPlate")} />
               <p className="text-xs text-muted-foreground">Obrigatória para solicitar vagas</p>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div>
-                <p className="text-sm font-semibold">Quero solicitar vagas</p>
+
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="flex items-center justify-between p-3">
+                <div>
+                  <p className="text-sm font-semibold">Quero solicitar vagas</p>
+                </div>
+                <Controller
+                  control={form.control}
+                  name="wantsToRequestSpot"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
               </div>
-              <Controller
-                control={form.control}
-                name="wantsToRequestSpot"
-                render={({ field }) => (
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                )}
-              />
+
+              <div className="border-t border-slate-200 dark:border-slate-700 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Possuo vaga para compartilhar</p>
+                  </div>
+                  <Controller
+                    control={form.control}
+                    name="hasParkingSpot"
+                    render={({ field }) => (
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    )}
+                  />
+                </div>
+
+                <AnimatePresence>
+                  {watchHasSpot && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1.5 text-sm">
+                          <MapPin className="w-3.5 h-3.5" /> Número da vaga
+                        </Label>
+                        <Input
+                          placeholder="Ex: 42 ou A-15"
+                          className="h-11 rounded-xl"
+                          {...form.register("parkingSpotNumber")}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
+
             <Button type="submit" className="w-full h-12 rounded-xl" disabled={isPending}>
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
             </Button>
@@ -507,7 +578,7 @@ function RemoveSpotAction({ spotId }: { spotId: number }) {
 }
 
 // Card detalhado do dono
-function OwnerSpotCard({ spot }: { spot: ParkingSpot }) {
+function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parkingSpotNumber?: string | null }) {
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
 
   const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
@@ -523,6 +594,11 @@ function OwnerSpotCard({ spot }: { spot: ParkingSpot }) {
         {spot.spotType === "RECURRING" && (
           <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
             <RotateCcw className="w-3 h-3 mr-1" /> Recorrente
+          </Badge>
+        )}
+        {parkingSpotNumber && (
+          <Badge variant="outline" className="text-xs font-semibold text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600">
+            <MapPin className="w-3 h-3 mr-1" /> Vaga {parkingSpotNumber}
           </Badge>
         )}
         <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -565,7 +641,11 @@ function OwnerSpotCard({ spot }: { spot: ParkingSpot }) {
 }
 
 // ─── Dialogs ─────────────────────────────────────────────────────────────────
-function CreateSpotDialog({ userId, phoneVerified }: { userId: number; phoneVerified: boolean }) {
+function CreateSpotDialog({ userId, phoneVerified, parkingSpotNumber }: {
+  userId: number;
+  phoneVerified: boolean;
+  parkingSpotNumber?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -601,6 +681,14 @@ function CreateSpotDialog({ userId, phoneVerified }: { userId: number; phoneVeri
       toast({
         title: "Verifique seu telefone",
         description: "Valide seu telefone para compartilhar vagas.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (v && !parkingSpotNumber) {
+      toast({
+        title: "Cadastre o número da sua vaga",
+        description: "Acesse 'Editar perfil' e informe o número da sua vaga antes de compartilhar.",
         variant: "destructive",
       });
       return;

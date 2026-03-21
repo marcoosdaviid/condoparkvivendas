@@ -23,6 +23,8 @@ export const RegisterUserBody = zod.object({
   phone: zod.string(),
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean().optional(),
+  hasParkingSpot: zod.boolean().optional(),
+  parkingSpotNumber: zod.string().nullish(),
 });
 
 /**
@@ -39,6 +41,8 @@ export const LoginUserResponse = zod.object({
   phone: zod.string(),
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean(),
+  hasParkingSpot: zod.boolean(),
+  parkingSpotNumber: zod.string().nullish(),
   phoneVerified: zod.boolean(),
   createdAt: zod.date(),
 });
@@ -70,6 +74,8 @@ export const VerifyOtpResponse = zod.object({
   phone: zod.string(),
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean(),
+  hasParkingSpot: zod.boolean(),
+  parkingSpotNumber: zod.string().nullish(),
   phoneVerified: zod.boolean(),
   createdAt: zod.date(),
 });
@@ -84,6 +90,8 @@ export const UpdateProfileParams = zod.object({
 export const UpdateProfileBody = zod.object({
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean().optional(),
+  hasParkingSpot: zod.boolean().optional(),
+  parkingSpotNumber: zod.string().nullish(),
 });
 
 export const UpdateProfileResponse = zod.object({
@@ -93,6 +101,8 @@ export const UpdateProfileResponse = zod.object({
   phone: zod.string(),
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean(),
+  hasParkingSpot: zod.boolean(),
+  parkingSpotNumber: zod.string().nullish(),
   phoneVerified: zod.boolean(),
   createdAt: zod.date(),
 });

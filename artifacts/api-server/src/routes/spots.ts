@@ -195,6 +195,28 @@ router.post("/spots", async (req, res): Promise<void> => {
   const spotType = parsed.data.spotType ?? "ONE_TIME";
   const dow = todayDayOfWeek();
 
+  // Validate that the user has registered their parking spot number
+  const [owner] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, parsed.data.userId))
+    .limit(1);
+
+  if (!owner) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  if (!owner.phoneVerified) {
+    res.status(400).json({ error: "Valide seu telefone para compartilhar vagas" });
+    return;
+  }
+
+  if (!owner.parkingSpotNumber) {
+    res.status(400).json({ error: "Cadastre o número da sua vaga para compartilhar disponibilidade" });
+    return;
+  }
+
   // Check for an existing active spot of any type today
   const allActiveSpots = await db
     .select()
