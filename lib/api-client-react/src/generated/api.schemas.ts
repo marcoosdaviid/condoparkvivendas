@@ -159,6 +159,10 @@ export interface OfferSpotInput {
   offeredByUserId: number;
 }
 
+export type GetMySpotParams = {
+  userId: number;
+};
+
 export type ApproveBookingParams = {
   spotId: number;
   token: string;

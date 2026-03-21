@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import {
   useGetAvailableSpots,
+  useGetMySpot,
   useCreateSpot,
   useRemoveSpot,
   useExpressInterest,
@@ -26,6 +27,7 @@ import {
   useDeleteSpotRequest,
   useUpdateProfile,
   getGetAvailableSpotsQueryKey,
+  getGetMySpotQueryKey,
   getGetSpotRequestsQueryKey,
   type ParkingSpot,
   type SpotRequest,
@@ -112,8 +114,10 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   FINISHED:             { label: "Encerrada",            color: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
 };
 
-const invalidateSpots = (qc: ReturnType<typeof useQueryClient>) =>
+const invalidateSpots = (qc: ReturnType<typeof useQueryClient>) => {
   qc.invalidateQueries({ queryKey: getGetAvailableSpotsQueryKey() });
+  qc.invalidateQueries({ queryKey: getGetMySpotQueryKey() });
+};
 
 const invalidateRequests = (qc: ReturnType<typeof useQueryClient>) =>
   qc.invalidateQueries({ queryKey: getGetSpotRequestsQueryKey() });
@@ -122,11 +126,13 @@ const invalidateRequests = (qc: ReturnType<typeof useQueryClient>) =>
 export default function Dashboard() {
   const { user, logout, login } = useAuth();
   const { data: spots, isLoading: spotsLoading } = useGetAvailableSpots();
+  const { data: mySpotData, isLoading: mySpotLoading } = useGetMySpot(
+    { userId: user!.id },
+    { query: { enabled: !!user?.id, throwOnError: false, queryKey: getGetMySpotQueryKey({ userId: user!.id }) } }
+  );
   const { data: requests, isLoading: requestsLoading } = useGetSpotRequests();
 
-  const mySpot = spots?.find(
-    (s) => s.userId === user?.id && s.status !== "FINISHED"
-  );
+  const mySpot: ParkingSpot | undefined = mySpotData ?? undefined;
   const otherSpots = spots?.filter((s) => s.userId !== user?.id) || [];
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
@@ -191,7 +197,7 @@ export default function Dashboard() {
         {/* BOTÕES DE AÇÃO RÁPIDA */}
         <div className="grid grid-cols-2 gap-3">
           <AnimatePresence mode="popLayout">
-            {spotsLoading ? (
+            {mySpotLoading ? (
               <Skeleton className="h-14 rounded-2xl" />
             ) : mySpot ? (
               <motion.div key="my-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -298,7 +304,7 @@ function ProfileEditTrigger({ userId, currentCarPlate, currentWants, currentHasS
         toast({ title: "Perfil atualizado!" });
         onUpdate(data);
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 
@@ -566,7 +572,7 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
         toast({ title: "Vaga compartilhada!", description: "Obrigado por ajudar o condomínio." });
         form.reset({ spotType: "ONE_TIME", daysOfWeek: [], date: todayStr(), availableFrom: "09:00", availableUntil: "17:00" });
       },
-      onError: (err: any) => toast({ title: "Erro ao compartilhar", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro ao compartilhar", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 
@@ -723,7 +729,7 @@ function ConfirmOccupationDialog({
         setOpen(false);
         toast({ title: "Uso confirmado!", description: "A vaga está agora ocupada." });
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
   const trigger = (
@@ -788,7 +794,7 @@ function VacateButton({
         const msg = data?.status === "AVAILABLE" ? "Vaga de volta como disponível!" : "Vaga marcada como encerrada.";
         toast({ title: "Vaga desocupada", description: msg });
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
   return (
@@ -843,7 +849,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 
@@ -991,7 +997,7 @@ function CreateRequestDialog({ userId }: { userId: number }) {
         toast({ title: "Pedido publicado!", description: "Aguarde um morador oferecer sua vaga." });
         form.reset({ date: todayStr(), startTime: "09:00", endTime: "17:00", reason: "" });
       },
-      onError: (err: any) => toast({ title: "Erro ao publicar", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro ao publicar", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
   return (
@@ -1048,7 +1054,7 @@ function RequestCard({ request, currentUserId }: { request: SpotRequest; current
         invalidateRequests(queryClient);
         toast({ title: "Vaga oferecida!", description: "O solicitante foi notificado." });
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 

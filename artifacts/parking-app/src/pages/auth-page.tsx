@@ -47,7 +47,7 @@ export default function AuthPage() {
       onError: (err: any) => {
         toast({
           title: "Falha no login",
-          description: err?.error || "Telefone não encontrado.",
+          description: err?.data?.error || "Telefone não encontrado.",
           variant: "destructive",
         });
       },
@@ -63,7 +63,7 @@ export default function AuthPage() {
       onError: (err: any) => {
         toast({
           title: "Falha no cadastro",
-          description: err?.error || "Não foi possível criar a conta.",
+          description: err?.data?.error || "Não foi possível criar a conta.",
           variant: "destructive",
         });
       },

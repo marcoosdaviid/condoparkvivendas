@@ -23,6 +23,7 @@ import type {
   CreateSpotRequestInput,
   ErrorResponse,
   ExpressInterestInput,
+  GetMySpotParams,
   HealthStatus,
   LoginInput,
   OfferSpotInput,
@@ -537,6 +538,100 @@ export const useCreateSpot = <
 > => {
   return useMutation(getCreateSpotMutationOptions(options));
 };
+
+/**
+ * @summary Get the current user's active spot (regardless of day)
+ */
+export const getGetMySpotUrl = (params: GetMySpotParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/spots/mine?${stringifiedParams}`
+    : `/api/spots/mine`;
+};
+
+export const getMySpot = async (
+  params: GetMySpotParams,
+  options?: RequestInit,
+): Promise<ParkingSpot | null> => {
+  return customFetch<ParkingSpot | null>(getGetMySpotUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMySpotQueryKey = (params?: GetMySpotParams) => {
+  return [`/api/spots/mine`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMySpotQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMySpot>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMySpotParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMySpot>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMySpotQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMySpot>>> = ({
+    signal,
+  }) => getMySpot(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMySpot>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMySpotQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMySpot>>
+>;
+export type GetMySpotQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's active spot (regardless of day)
+ */
+
+export function useGetMySpot<
+  TData = Awaited<ReturnType<typeof getMySpot>>,
+  TError = ErrorType<unknown>,
+>(
+  params: GetMySpotParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMySpot>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMySpotQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Approve a booking via token link (owner clicks WhatsApp link)

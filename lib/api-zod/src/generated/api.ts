@@ -122,6 +122,45 @@ export const CreateSpotBody = zod.object({
 });
 
 /**
+ * @summary Get the current user's active spot (regardless of day)
+ */
+export const GetMySpotQueryParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const GetMySpotResponse = zod.union([
+  zod.object({
+    id: zod.number(),
+    userId: zod.number(),
+    userName: zod.string(),
+    userApartment: zod.string(),
+    userPhone: zod.string(),
+    spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+    daysOfWeek: zod.array(zod.string()).nullish(),
+    availableFrom: zod.string(),
+    availableUntil: zod.string(),
+    date: zod.string().nullish(),
+    status: zod.enum([
+      "AVAILABLE",
+      "PENDING_CONFIRMATION",
+      "OCCUPIED",
+      "FINISHED",
+    ]),
+    interestedUserId: zod.number().nullish(),
+    interestedUserName: zod.string().nullish(),
+    interestedUserPhone: zod.string().nullish(),
+    interestedUserApartment: zod.string().nullish(),
+    approvalToken: zod.string().nullish(),
+    occupantName: zod.string().nullish(),
+    occupantApartment: zod.string().nullish(),
+    carPlate: zod.string().nullish(),
+    expectedExitTime: zod.string().nullish(),
+    createdAt: zod.date(),
+  }),
+  zod.null(),
+]);
+
+/**
  * @summary Approve a booking via token link (owner clicks WhatsApp link)
  */
 export const ApproveBookingQueryParams = zod.object({

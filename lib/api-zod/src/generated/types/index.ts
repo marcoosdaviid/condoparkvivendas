@@ -13,6 +13,7 @@ export * from "./createSpotInputSpotType";
 export * from "./createSpotRequestInput";
 export * from "./errorResponse";
 export * from "./expressInterestInput";
+export * from "./getMySpotParams";
 export * from "./healthStatus";
 export * from "./loginInput";
 export * from "./offerSpotInput";

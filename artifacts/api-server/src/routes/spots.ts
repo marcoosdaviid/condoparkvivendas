@@ -183,6 +183,34 @@ router.get("/spots", async (_req, res): Promise<void> => {
   res.json(GetAvailableSpotsResponse.parse(enriched));
 });
 
+// GET /spots/mine — return the current user's active spot (regardless of day)
+router.get("/spots/mine", async (req, res): Promise<void> => {
+  const userId = Number(req.query.userId);
+  if (!userId || isNaN(userId)) {
+    res.status(400).json({ error: "userId inválido" });
+    return;
+  }
+
+  const [spot] = await db
+    .select()
+    .from(parkingSpotsTable)
+    .where(
+      and(
+        eq(parkingSpotsTable.userId, userId),
+        ne(parkingSpotsTable.status, "FINISHED")
+      )
+    )
+    .limit(1);
+
+  if (!spot) {
+    res.json(null);
+    return;
+  }
+
+  const full = await selectFullSpot(spot.id);
+  res.json(full);
+});
+
 // POST /spots — create one-time or recurring spot
 router.post("/spots", async (req, res): Promise<void> => {
   const parsed = CreateSpotBody.safeParse(req.body);
