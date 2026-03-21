@@ -178,9 +178,9 @@ paths:
 
   /spots/approve:
     get:
-      operationId: approveBooking
+      operationId: getPendingApproval
       tags: [spots]
-      summary: Approve a booking via token link (owner clicks WhatsApp link)
+      summary: Preview pending approval info (read-only, no side effects)
       parameters:
         - name: spotId
           in: query
@@ -194,7 +194,7 @@ paths:
             type: string
       responses:
         "200":
-          description: Booking approved, spot now OCCUPIED
+          description: Spot pending approval with interested user info
           content:
             application/json:
               schema:
@@ -207,6 +207,71 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Spot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: confirmApproval
+      tags: [spots]
+      summary: Owner confirms approval — sets spot to OCCUPIED
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spotId, token]
+              properties:
+                spotId:
+                  type: integer
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Booking confirmed, spot now OCCUPIED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/{id}/decline:
+    post:
+      operationId: declineApproval
+      tags: [spots]
+      summary: Owner declines the booking request — resets spot to AVAILABLE
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Booking declined, spot reset to AVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid or expired token
           content:
             application/json:
               schema:

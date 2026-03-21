@@ -163,7 +163,16 @@ export type GetMySpotParams = {
   userId: number;
 };
 
-export type ApproveBookingParams = {
+export type GetPendingApprovalParams = {
   spotId: number;
+  token: string;
+};
+
+export type ConfirmApprovalBody = {
+  spotId: number;
+  token: string;
+};
+
+export type DeclineApprovalBody = {
   token: string;
 };

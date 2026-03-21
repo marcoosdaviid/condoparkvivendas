@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ApproveBookingParams = {
-  spotId: number;
+export type DeclineApprovalBody = {
   token: string;
 };

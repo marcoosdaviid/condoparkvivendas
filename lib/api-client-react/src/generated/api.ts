@@ -17,13 +17,15 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  ApproveBookingParams,
+  ConfirmApprovalBody,
   ConfirmOccupationInput,
   CreateSpotInput,
   CreateSpotRequestInput,
+  DeclineApprovalBody,
   ErrorResponse,
   ExpressInterestInput,
   GetMySpotParams,
+  GetPendingApprovalParams,
   HealthStatus,
   LoginInput,
   OfferSpotInput,
@@ -634,9 +636,9 @@ export function useGetMySpot<
 }
 
 /**
- * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ * @summary Preview pending approval info (read-only, no side effects)
  */
-export const getApproveBookingUrl = (params: ApproveBookingParams) => {
+export const getGetPendingApprovalUrl = (params: GetPendingApprovalParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -652,28 +654,30 @@ export const getApproveBookingUrl = (params: ApproveBookingParams) => {
     : `/api/spots/approve`;
 };
 
-export const approveBooking = async (
-  params: ApproveBookingParams,
+export const getPendingApproval = async (
+  params: GetPendingApprovalParams,
   options?: RequestInit,
 ): Promise<ParkingSpot> => {
-  return customFetch<ParkingSpot>(getApproveBookingUrl(params), {
+  return customFetch<ParkingSpot>(getGetPendingApprovalUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getApproveBookingQueryKey = (params?: ApproveBookingParams) => {
+export const getGetPendingApprovalQueryKey = (
+  params?: GetPendingApprovalParams,
+) => {
   return [`/api/spots/approve`, ...(params ? [params] : [])] as const;
 };
 
-export const getApproveBookingQueryOptions = <
-  TData = Awaited<ReturnType<typeof approveBooking>>,
+export const getGetPendingApprovalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPendingApproval>>,
   TError = ErrorType<ErrorResponse>,
 >(
-  params: ApproveBookingParams,
+  params: GetPendingApprovalParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof approveBooking>>,
+      Awaited<ReturnType<typeof getPendingApproval>>,
       TError,
       TData
     >;
@@ -682,43 +686,44 @@ export const getApproveBookingQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getApproveBookingQueryKey(params);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPendingApprovalQueryKey(params);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof approveBooking>>> = ({
-    signal,
-  }) => approveBooking(params, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPendingApproval>>
+  > = ({ signal }) => getPendingApproval(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof approveBooking>>,
+    Awaited<ReturnType<typeof getPendingApproval>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type ApproveBookingQueryResult = NonNullable<
-  Awaited<ReturnType<typeof approveBooking>>
+export type GetPendingApprovalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPendingApproval>>
 >;
-export type ApproveBookingQueryError = ErrorType<ErrorResponse>;
+export type GetPendingApprovalQueryError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ * @summary Preview pending approval info (read-only, no side effects)
  */
 
-export function useApproveBooking<
-  TData = Awaited<ReturnType<typeof approveBooking>>,
+export function useGetPendingApproval<
+  TData = Awaited<ReturnType<typeof getPendingApproval>>,
   TError = ErrorType<ErrorResponse>,
 >(
-  params: ApproveBookingParams,
+  params: GetPendingApprovalParams,
   options?: {
     query?: UseQueryOptions<
-      Awaited<ReturnType<typeof approveBooking>>,
+      Awaited<ReturnType<typeof getPendingApproval>>,
       TError,
       TData
     >;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getApproveBookingQueryOptions(params, options);
+  const queryOptions = getGetPendingApprovalQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -726,6 +731,179 @@ export function useApproveBooking<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Owner confirms approval — sets spot to OCCUPIED
+ */
+export const getConfirmApprovalUrl = () => {
+  return `/api/spots/approve`;
+};
+
+export const confirmApproval = async (
+  confirmApprovalBody: ConfirmApprovalBody,
+  options?: RequestInit,
+): Promise<ParkingSpot> => {
+  return customFetch<ParkingSpot>(getConfirmApprovalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(confirmApprovalBody),
+  });
+};
+
+export const getConfirmApprovalMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmApproval>>,
+    TError,
+    { data: BodyType<ConfirmApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof confirmApproval>>,
+  TError,
+  { data: BodyType<ConfirmApprovalBody> },
+  TContext
+> => {
+  const mutationKey = ["confirmApproval"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof confirmApproval>>,
+    { data: BodyType<ConfirmApprovalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return confirmApproval(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ConfirmApprovalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof confirmApproval>>
+>;
+export type ConfirmApprovalMutationBody = BodyType<ConfirmApprovalBody>;
+export type ConfirmApprovalMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Owner confirms approval — sets spot to OCCUPIED
+ */
+export const useConfirmApproval = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof confirmApproval>>,
+    TError,
+    { data: BodyType<ConfirmApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof confirmApproval>>,
+  TError,
+  { data: BodyType<ConfirmApprovalBody> },
+  TContext
+> => {
+  return useMutation(getConfirmApprovalMutationOptions(options));
+};
+
+/**
+ * @summary Owner declines the booking request — resets spot to AVAILABLE
+ */
+export const getDeclineApprovalUrl = (id: number) => {
+  return `/api/spots/${id}/decline`;
+};
+
+export const declineApproval = async (
+  id: number,
+  declineApprovalBody: DeclineApprovalBody,
+  options?: RequestInit,
+): Promise<SuccessResponse> => {
+  return customFetch<SuccessResponse>(getDeclineApprovalUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(declineApprovalBody),
+  });
+};
+
+export const getDeclineApprovalMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineApproval>>,
+    TError,
+    { id: number; data: BodyType<DeclineApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof declineApproval>>,
+  TError,
+  { id: number; data: BodyType<DeclineApprovalBody> },
+  TContext
+> => {
+  const mutationKey = ["declineApproval"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof declineApproval>>,
+    { id: number; data: BodyType<DeclineApprovalBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return declineApproval(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeclineApprovalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof declineApproval>>
+>;
+export type DeclineApprovalMutationBody = BodyType<DeclineApprovalBody>;
+export type DeclineApprovalMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Owner declines the booking request — resets spot to AVAILABLE
+ */
+export const useDeclineApproval = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineApproval>>,
+    TError,
+    { id: number; data: BodyType<DeclineApprovalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof declineApproval>>,
+  TError,
+  { id: number; data: BodyType<DeclineApprovalBody> },
+  TContext
+> => {
+  return useMutation(getDeclineApprovalMutationOptions(options));
+};
 
 /**
  * @summary Remove a parking spot listing

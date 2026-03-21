@@ -161,14 +161,14 @@ export const GetMySpotResponse = zod.union([
 ]);
 
 /**
- * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ * @summary Preview pending approval info (read-only, no side effects)
  */
-export const ApproveBookingQueryParams = zod.object({
+export const GetPendingApprovalQueryParams = zod.object({
   spotId: zod.coerce.number(),
   token: zod.coerce.string(),
 });
 
-export const ApproveBookingResponse = zod.object({
+export const GetPendingApprovalResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
   userName: zod.string(),
@@ -195,6 +195,58 @@ export const ApproveBookingResponse = zod.object({
   carPlate: zod.string().nullish(),
   expectedExitTime: zod.string().nullish(),
   createdAt: zod.date(),
+});
+
+/**
+ * @summary Owner confirms approval — sets spot to OCCUPIED
+ */
+export const ConfirmApprovalBody = zod.object({
+  spotId: zod.number(),
+  token: zod.string(),
+});
+
+export const ConfirmApprovalResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
+  availableFrom: zod.string(),
+  availableUntil: zod.string(),
+  date: zod.string().nullish(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Owner declines the booking request — resets spot to AVAILABLE
+ */
+export const DeclineApprovalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeclineApprovalBody = zod.object({
+  token: zod.string(),
+});
+
+export const DeclineApprovalResponse = zod.object({
+  message: zod.string(),
 });
 
 /**

@@ -6,14 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./approveBookingParams";
+export * from "./confirmApprovalBody";
 export * from "./confirmOccupationInput";
 export * from "./createSpotInput";
 export * from "./createSpotInputSpotType";
 export * from "./createSpotRequestInput";
+export * from "./declineApprovalBody";
 export * from "./errorResponse";
 export * from "./expressInterestInput";
 export * from "./getMySpotParams";
+export * from "./getPendingApprovalParams";
 export * from "./healthStatus";
 export * from "./loginInput";
 export * from "./offerSpotInput";

@@ -6,8 +6,12 @@ import {
   RemoveSpotParams,
   RemoveSpotResponse,
   GetAvailableSpotsResponse,
-  ApproveBookingQueryParams,
-  ApproveBookingResponse,
+  GetPendingApprovalQueryParams,
+  GetPendingApprovalResponse,
+  ConfirmApprovalBody,
+  ConfirmApprovalResponse,
+  DeclineApprovalParams,
+  DeclineApprovalBody,
   ExpressInterestParams,
   ExpressInterestBody,
   ExpressInterestResponse,
@@ -282,9 +286,43 @@ router.post("/spots", async (req, res): Promise<void> => {
   res.status(201).json(full);
 });
 
-// GET /spots/approve — approve booking via token (WhatsApp link)
+// GET /spots/approve — preview pending approval info (read-only, no side effects)
 router.get("/spots/approve", async (req, res): Promise<void> => {
-  const parsed = ApproveBookingQueryParams.safeParse(req.query);
+  const parsed = GetPendingApprovalQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Parâmetros inválidos" });
+    return;
+  }
+
+  const { spotId, token } = parsed.data;
+
+  const [spot] = await db
+    .select()
+    .from(parkingSpotsTable)
+    .where(eq(parkingSpotsTable.id, spotId));
+
+  if (!spot) {
+    res.status(404).json({ error: "Vaga não encontrada" });
+    return;
+  }
+
+  if (spot.status !== "PENDING_CONFIRMATION") {
+    res.status(400).json({ error: "Esta vaga não está aguardando aprovação" });
+    return;
+  }
+
+  if (spot.approvalToken !== token) {
+    res.status(400).json({ error: "Token inválido" });
+    return;
+  }
+
+  const full = await selectFullSpot(spotId);
+  res.json(GetPendingApprovalResponse.parse(full));
+});
+
+// POST /spots/approve — owner confirms approval, sets spot to OCCUPIED
+router.post("/spots/approve", async (req, res): Promise<void> => {
+  const parsed = ConfirmApprovalBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Parâmetros inválidos" });
     return;
@@ -317,7 +355,6 @@ router.get("/spots/approve", async (req, res): Promise<void> => {
     return;
   }
 
-  // Look up requester details
   const [requester] = await db
     .select()
     .from(usersTable)
@@ -341,7 +378,57 @@ router.get("/spots/approve", async (req, res): Promise<void> => {
     .where(eq(parkingSpotsTable.id, spotId));
 
   const full = await selectFullSpot(spotId);
-  res.json(ApproveBookingResponse.parse(full));
+  res.json(ConfirmApprovalResponse.parse(full));
+});
+
+// POST /spots/:id/decline — owner declines, resets spot to AVAILABLE
+router.post("/spots/:id/decline", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = DeclineApprovalParams.safeParse({ id: rawId });
+  const body = DeclineApprovalBody.safeParse(req.body);
+
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Parâmetros inválidos" });
+    return;
+  }
+
+  const { id: spotId } = params.data;
+  const { token } = body.data;
+
+  const [spot] = await db
+    .select()
+    .from(parkingSpotsTable)
+    .where(eq(parkingSpotsTable.id, spotId));
+
+  if (!spot) {
+    res.status(404).json({ error: "Vaga não encontrada" });
+    return;
+  }
+
+  if (spot.status !== "PENDING_CONFIRMATION") {
+    res.status(400).json({ error: "Esta vaga não está aguardando aprovação" });
+    return;
+  }
+
+  if (spot.approvalToken !== token) {
+    res.status(400).json({ error: "Token inválido" });
+    return;
+  }
+
+  await db
+    .update(parkingSpotsTable)
+    .set({
+      status: "AVAILABLE",
+      interestedUserId: null,
+      approvalToken: null,
+      occupantName: null,
+      occupantApartment: null,
+      carPlate: null,
+      expectedExitTime: null,
+    })
+    .where(eq(parkingSpotsTable.id, spotId));
+
+  res.json({ message: "Solicitação recusada. Vaga disponível novamente." });
 });
 
 // DELETE /spots/:id
