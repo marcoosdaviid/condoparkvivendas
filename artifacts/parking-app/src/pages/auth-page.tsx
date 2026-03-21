@@ -41,7 +41,7 @@ const otpSchema = z.object({
 export default function AuthPage() {
   const { login } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "register">("register");
   const [pendingUser, setPendingUser] = useState<User | null>(null);
   const [wantsToRequest, setWantsToRequest] = useState(false);
   const [hasSpot, setHasSpot] = useState(false);
