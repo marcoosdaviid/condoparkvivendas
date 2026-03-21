@@ -5,21 +5,12 @@ import {
   RegisterUserBody,
   LoginUserBody,
   LoginUserResponse,
-  SendOtpBody,
-  SendOtpResponse,
-  VerifyOtpBody,
-  VerifyOtpResponse,
   UpdateProfileParams,
   UpdateProfileBody,
   UpdateProfileResponse,
 } from "@workspace/api-zod";
-import crypto from "crypto";
 
 const router: IRouter = Router();
-
-function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
 
 router.post("/users/register", async (req, res): Promise<void> => {
   const parsed = RegisterUserBody.safeParse(req.body);
@@ -49,7 +40,7 @@ router.post("/users/register", async (req, res): Promise<void> => {
       wantsToRequestSpot: parsed.data.wantsToRequestSpot ?? false,
       hasParkingSpot: parsed.data.hasParkingSpot ?? false,
       parkingSpotNumber: parsed.data.parkingSpotNumber ?? null,
-      phoneVerified: false,
+      phoneVerified: true,
     })
     .returning();
 
@@ -75,82 +66,6 @@ router.post("/users/login", async (req, res): Promise<void> => {
   }
 
   res.json(LoginUserResponse.parse(user));
-});
-
-router.post("/users/send-otp", async (req, res): Promise<void> => {
-  const parsed = SendOtpBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.phone, parsed.data.phone))
-    .limit(1);
-
-  if (!user) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
-
-  const otp = generateOtp();
-  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-  await db
-    .update(usersTable)
-    .set({ otpCode: otp, otpExpiry: expiry })
-    .where(eq(usersTable.id, user.id));
-
-  console.log(`[OTP] Phone: ${parsed.data.phone}, Code: ${otp}`);
-
-  res.json(SendOtpResponse.parse({
-    message: "Código enviado com sucesso",
-    devOtp: otp,
-  }));
-});
-
-router.post("/users/verify-otp", async (req, res): Promise<void> => {
-  const parsed = VerifyOtpBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.phone, parsed.data.phone))
-    .limit(1);
-
-  if (!user) {
-    res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
-
-  if (!user.otpCode || !user.otpExpiry) {
-    res.status(400).json({ error: "Nenhum código solicitado. Clique em 'Enviar código' primeiro." });
-    return;
-  }
-
-  if (new Date() > user.otpExpiry) {
-    res.status(400).json({ error: "Código expirado. Solicite um novo." });
-    return;
-  }
-
-  if (user.otpCode !== parsed.data.code) {
-    res.status(400).json({ error: "Código incorreto. Tente novamente." });
-    return;
-  }
-
-  const [updated] = await db
-    .update(usersTable)
-    .set({ phoneVerified: true, otpCode: null, otpExpiry: null })
-    .where(eq(usersTable.id, user.id))
-    .returning();
-
-  res.json(VerifyOtpResponse.parse(updated));
 });
 
 router.patch("/users/:id", async (req, res): Promise<void> => {

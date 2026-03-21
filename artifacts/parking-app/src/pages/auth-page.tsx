@@ -3,13 +3,10 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { CarFront, Loader2, ArrowRight, Phone, ShieldCheck, Car, RefreshCw, MapPin } from "lucide-react";
+import { CarFront, Loader2, ArrowRight, Car, MapPin } from "lucide-react";
 import {
   useRegisterUser,
   useLoginUser,
-  useSendOtp,
-  useVerifyOtp,
-  type User,
 } from "@workspace/api-client-react";
 
 import { useAuth } from "@/lib/auth";
@@ -34,29 +31,18 @@ const registerSchema = z.object({
   parkingSpotNumber: z.string().optional(),
 });
 
-const otpSchema = z.object({
-  code: z.string().length(6, "O código tem 6 dígitos"),
-});
-
 export default function AuthPage() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"login" | "register">("register");
-  const [pendingUser, setPendingUser] = useState<User | null>(null);
   const [wantsToRequest, setWantsToRequest] = useState(false);
   const [hasSpot, setHasSpot] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
 
   const { mutate: doLogin, isPending: isLoggingIn } = useLoginUser({
     mutation: {
       onSuccess: (data) => {
-        if (!data.phoneVerified) {
-          setPendingUser(data);
-          triggerSendOtp(data.phone);
-        } else {
-          toast({ title: "Bem-vindo(a) de volta!" });
-          login(data);
-        }
+        toast({ title: "Bem-vindo(a) de volta!" });
+        login(data);
       },
       onError: (err: any) => {
         toast({
@@ -71,8 +57,8 @@ export default function AuthPage() {
   const { mutate: doRegister, isPending: isRegistering } = useRegisterUser({
     mutation: {
       onSuccess: (data) => {
-        setPendingUser(data);
-        triggerSendOtp(data.phone);
+        toast({ title: "Bem-vindo(a) ao CondoPark!", description: "Conta criada com sucesso." });
+        login(data);
       },
       onError: (err: any) => {
         toast({
@@ -84,46 +70,6 @@ export default function AuthPage() {
     },
   });
 
-  const { mutate: doSendOtp, isPending: isSendingOtp } = useSendOtp({
-    mutation: {
-      onSuccess: (data) => {
-        setOtpSent(true);
-        toast({
-          title: "Código enviado!",
-          description: `Código (desenvolvimento): ${data.devOtp}`,
-        });
-      },
-      onError: (err: any) => {
-        toast({
-          title: "Erro ao enviar código",
-          description: err?.error || "Tente novamente.",
-          variant: "destructive",
-        });
-      },
-    },
-  });
-
-  const { mutate: doVerifyOtp, isPending: isVerifying } = useVerifyOtp({
-    mutation: {
-      onSuccess: (data) => {
-        toast({ title: "Telefone verificado!", description: "Bem-vindo(a) ao CondoPark." });
-        login(data);
-      },
-      onError: (err: any) => {
-        toast({
-          title: "Código inválido",
-          description: err?.error || "Verifique e tente novamente.",
-          variant: "destructive",
-        });
-      },
-    },
-  });
-
-  function triggerSendOtp(phone: string) {
-    setOtpSent(false);
-    doSendOtp({ data: { phone } });
-  }
-
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { phone: "" },
@@ -133,101 +79,6 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: { name: "", apartment: "", phone: "", wantsToRequestSpot: false, carPlate: "", hasParkingSpot: false, parkingSpotNumber: "" },
   });
-
-  const otpForm = useForm<z.infer<typeof otpSchema>>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: { code: "" },
-  });
-
-  if (pendingUser) {
-    return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 w-full max-w-md mx-auto"
-        >
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 mb-6">
-              <ShieldCheck className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">Verificar Telefone</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
-              Enviamos um código para <strong>{pendingUser.phone}</strong>
-            </p>
-          </div>
-
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 space-y-6">
-            <AnimatePresence mode="wait">
-              {!otpSent ? (
-                <motion.div key="sending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-3 py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  <p className="text-slate-500 text-sm">Enviando código...</p>
-                </motion.div>
-              ) : (
-                <motion.form
-                  key="otp-form"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  onSubmit={otpForm.handleSubmit((v) =>
-                    doVerifyOtp({ data: { phone: pendingUser.phone, code: v.code } })
-                  )}
-                  className="space-y-5"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="otp-code" className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                      <Phone className="w-4 h-4" /> Código de verificação
-                    </Label>
-                    <Input
-                      id="otp-code"
-                      placeholder="000000"
-                      maxLength={6}
-                      className="h-14 rounded-xl text-center text-2xl tracking-[0.4em] font-mono bg-white/50 dark:bg-slate-950/50"
-                      {...otpForm.register("code")}
-                    />
-                    {otpForm.formState.errors.code && (
-                      <p className="text-sm text-destructive font-medium">{otpForm.formState.errors.code.message}</p>
-                    )}
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25"
-                    disabled={isVerifying}
-                  >
-                    {isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verificar código"}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-slate-500"
-                    onClick={() => triggerSendOtp(pendingUser.phone)}
-                    disabled={isSendingOtp}
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                    {isSendingOtp ? "Enviando..." : "Reenviar código"}
-                  </Button>
-                </motion.form>
-              )}
-            </AnimatePresence>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-xl text-slate-500"
-              onClick={() => { setPendingUser(null); setOtpSent(false); }}
-            >
-              Voltar
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 relative overflow-hidden">

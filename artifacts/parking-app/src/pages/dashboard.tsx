@@ -8,7 +8,7 @@ import {
   CarFront, LogOut, Phone, Clock, Building2, MapPin,
   Loader2, Plus, HandHelping, CalendarDays, CheckCircle2,
   Car, KeyRound, UserCheck, CircleCheck, AlertCircle, Trash2,
-  ShieldCheck, ShieldAlert, MessageCircle, RefreshCw, Settings, RotateCcw,
+  MessageCircle, Settings, RotateCcw,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
@@ -24,8 +24,6 @@ import {
   useCreateSpotRequest,
   useOfferSpotForRequest,
   useDeleteSpotRequest,
-  useSendOtp,
-  useVerifyOtp,
   useUpdateProfile,
   getGetAvailableSpotsQueryKey,
   getGetSpotRequestsQueryKey,
@@ -82,10 +80,6 @@ const createRequestSchema = z.object({
   startTime: z.string().min(1, "Horário de início é obrigatório"),
   endTime: z.string().min(1, "Horário de término é obrigatório"),
   reason: z.string().optional(),
-});
-
-const otpSchema = z.object({
-  code: z.string().length(6, "O código tem 6 dígitos"),
 });
 
 const profileSchema = z.object({
@@ -155,9 +149,6 @@ export default function Dashboard() {
                     {user?.name ? getInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
-                {!user?.phoneVerified && (
-                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white dark:border-slate-950" />
-                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-xl">
@@ -197,11 +188,6 @@ export default function Dashboard() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">Compartilhe ou encontre uma vaga hoje.</p>
         </div>
 
-        {/* BANNER VERIFICAÇÃO DE TELEFONE */}
-        {!user?.phoneVerified && (
-          <PhoneVerificationBanner phone={user?.phone ?? ""} onVerified={login} />
-        )}
-
         {/* BOTÕES DE AÇÃO RÁPIDA */}
         <div className="grid grid-cols-2 gap-3">
           <AnimatePresence mode="popLayout">
@@ -215,7 +201,6 @@ export default function Dashboard() {
               <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
                 <CreateSpotDialog
                   userId={user!.id}
-                  phoneVerified={user?.phoneVerified ?? false}
                   parkingSpotNumber={user?.parkingSpotNumber}
                 />
               </motion.div>
@@ -291,96 +276,6 @@ export default function Dashboard() {
         </Tabs>
       </main>
     </div>
-  );
-}
-
-// ─── Phone Verification Banner ───────────────────────────────────────────────
-function PhoneVerificationBanner({ phone, onVerified }: { phone: string; onVerified: (user: any) => void }) {
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-
-  const { mutate: sendOtp, isPending: isSending } = useSendOtp({
-    mutation: {
-      onSuccess: (data) => {
-        setOtpSent(true);
-        setOpen(true);
-        toast({ title: "Código enviado!", description: `Código (dev): ${data.devOtp}` });
-      },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
-    },
-  });
-
-  const { mutate: verifyOtp, isPending: isVerifying } = useVerifyOtp({
-    mutation: {
-      onSuccess: (data) => {
-        setOpen(false);
-        toast({ title: "Telefone verificado!" });
-        onVerified(data);
-      },
-      onError: (err: any) => toast({ title: "Código inválido", description: err?.error, variant: "destructive" }),
-    },
-  });
-
-  const form = useForm<z.infer<typeof otpSchema>>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: { code: "" },
-  });
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl"
-      >
-        <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Verifique seu telefone</p>
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Necessário para solicitar vagas</p>
-        </div>
-        <Button
-          size="sm"
-          className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-8 text-xs"
-          onClick={() => sendOtp({ data: { phone } })}
-          disabled={isSending}
-        >
-          {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Verificar"}
-        </Button>
-      </motion.div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-display flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" /> Verificar Telefone
-            </DialogTitle>
-            <DialogDescription>Digite o código enviado para {phone}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={form.handleSubmit((v) => verifyOtp({ data: { phone, code: v.code } }))} className="space-y-4 mt-2">
-            <div className="space-y-2">
-              <Label>Código de verificação</Label>
-              <Input
-                placeholder="000000"
-                maxLength={6}
-                className="h-14 rounded-xl text-center text-2xl tracking-[0.4em] font-mono"
-                {...form.register("code")}
-              />
-              {form.formState.errors.code && <p className="text-xs text-destructive">{form.formState.errors.code.message}</p>}
-            </div>
-            <Button type="submit" className="w-full h-12 rounded-xl" disabled={isVerifying}>
-              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar código"}
-            </Button>
-            <Button
-              type="button" variant="ghost" size="sm" className="w-full text-slate-500"
-              onClick={() => sendOtp({ data: { phone } })} disabled={isSending}
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reenviar código
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
 
@@ -641,9 +536,8 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
 }
 
 // ─── Dialogs ─────────────────────────────────────────────────────────────────
-function CreateSpotDialog({ userId, phoneVerified, parkingSpotNumber }: {
+function CreateSpotDialog({ userId, parkingSpotNumber }: {
   userId: number;
-  phoneVerified: boolean;
   parkingSpotNumber?: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -677,14 +571,6 @@ function CreateSpotDialog({ userId, phoneVerified, parkingSpotNumber }: {
   });
 
   function handleOpenChange(v: boolean) {
-    if (v && !phoneVerified) {
-      toast({
-        title: "Verifique seu telefone",
-        description: "Valide seu telefone para compartilhar vagas.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (v && !parkingSpotNumber) {
       toast({
         title: "Cadastre o número da sua vaga",
@@ -932,7 +818,7 @@ function VacateButton({
 }
 
 // ─── SpotCard ────────────────────────────────────────────────────────────────
-function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; phoneVerified?: boolean; carPlate?: string | null } }) {
+function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -962,10 +848,6 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
   });
 
   function handleTalkToOwner() {
-    if (!currentUser.phoneVerified) {
-      toast({ title: "Verifique seu telefone", description: "Valide seu telefone para solicitar vagas.", variant: "destructive" });
-      return;
-    }
     if (!currentUser.carPlate) {
       toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
       return;

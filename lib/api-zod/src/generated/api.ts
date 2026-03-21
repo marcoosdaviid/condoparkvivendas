@@ -48,39 +48,6 @@ export const LoginUserResponse = zod.object({
 });
 
 /**
- * @summary Send OTP code to phone number
- */
-export const SendOtpBody = zod.object({
-  phone: zod.string(),
-});
-
-export const SendOtpResponse = zod.object({
-  message: zod.string(),
-  devOtp: zod.string().nullish(),
-});
-
-/**
- * @summary Verify OTP code and mark phone as verified
- */
-export const VerifyOtpBody = zod.object({
-  phone: zod.string(),
-  code: zod.string(),
-});
-
-export const VerifyOtpResponse = zod.object({
-  id: zod.number(),
-  name: zod.string(),
-  apartment: zod.string(),
-  phone: zod.string(),
-  carPlate: zod.string().nullish(),
-  wantsToRequestSpot: zod.boolean(),
-  hasParkingSpot: zod.boolean(),
-  parkingSpotNumber: zod.string().nullish(),
-  phoneVerified: zod.boolean(),
-  createdAt: zod.date(),
-});
-
-/**
  * @summary Update user profile (car plate, preferences)
  */
 export const UpdateProfileParams = zod.object({

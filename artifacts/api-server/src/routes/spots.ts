@@ -207,11 +207,6 @@ router.post("/spots", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!owner.phoneVerified) {
-    res.status(400).json({ error: "Valide seu telefone para compartilhar vagas" });
-    return;
-  }
-
   if (!owner.parkingSpotNumber) {
     res.status(400).json({ error: "Cadastre o número da sua vaga para compartilhar disponibilidade" });
     return;
@@ -366,11 +361,6 @@ router.post("/spots/:id/interest", async (req, res): Promise<void> => {
 
   if (!interestedUser) {
     res.status(404).json({ error: "Usuário não encontrado" });
-    return;
-  }
-
-  if (!interestedUser.phoneVerified) {
-    res.status(400).json({ error: "Valide seu telefone para solicitar vagas" });
     return;
   }
 

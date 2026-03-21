@@ -44,20 +44,6 @@ export interface LoginInput {
   phone: string;
 }
 
-export interface SendOtpInput {
-  phone: string;
-}
-
-export interface SendOtpResponse {
-  message: string;
-  devOtp?: string | null;
-}
-
-export interface VerifyOtpInput {
-  phone: string;
-  code: string;
-}
-
 export interface UpdateProfileInput {
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;

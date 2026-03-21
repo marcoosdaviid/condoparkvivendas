@@ -11,17 +11,13 @@ export const usersTable = pgTable("users", {
   wantsToRequestSpot: boolean("wants_to_request_spot").notNull().default(false),
   hasParkingSpot: boolean("has_parking_spot").notNull().default(false),
   parkingSpotNumber: text("parking_spot_number"),
-  phoneVerified: boolean("phone_verified").notNull().default(false),
-  otpCode: text("otp_code"),
-  otpExpiry: timestamp("otp_expiry", { withTimezone: true }),
+  phoneVerified: boolean("phone_verified").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,
   createdAt: true,
-  otpCode: true,
-  otpExpiry: true,
   phoneVerified: true,
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;

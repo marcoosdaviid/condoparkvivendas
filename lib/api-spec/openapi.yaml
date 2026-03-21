@@ -79,62 +79,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /users/send-otp:
-    post:
-      operationId: sendOtp
-      tags: [users]
-      summary: Send OTP code to phone number
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SendOtpInput"
-      responses:
-        "200":
-          description: OTP sent
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SendOtpResponse"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /users/verify-otp:
-    post:
-      operationId: verifyOtp
-      tags: [users]
-      summary: Verify OTP code and mark phone as verified
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/VerifyOtpInput"
-      responses:
-        "200":
-          description: Phone verified
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          description: Invalid or expired OTP
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /users/{id}:
     patch:
       operationId: updateProfile
@@ -562,32 +506,6 @@ components:
         phone:
           type: string
       required: [phone]
-
-    SendOtpInput:
-      type: object
-      properties:
-        phone:
-          type: string
-      required: [phone]
-
-    SendOtpResponse:
-      type: object
-      properties:
-        message:
-          type: string
-        devOtp:
-          type: string
-          nullable: true
-      required: [message]
-
-    VerifyOtpInput:
-      type: object
-      properties:
-        phone:
-          type: string
-        code:
-          type: string
-      required: [phone, code]
 
     UpdateProfileInput:
       type: object
