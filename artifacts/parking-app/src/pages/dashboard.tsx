@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CarFront, LogOut, Phone, Clock, Building2, MapPin,
   Loader2, Plus, HandHelping, CalendarDays, CheckCircle2,
   Car, KeyRound, UserCheck, CircleCheck, AlertCircle, Trash2,
+  ShieldCheck, ShieldAlert, MessageCircle, RefreshCw, Settings, RotateCcw,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
@@ -23,6 +24,9 @@ import {
   useCreateSpotRequest,
   useOfferSpotForRequest,
   useDeleteSpotRequest,
+  useSendOtp,
+  useVerifyOtp,
+  useUpdateProfile,
   getGetAvailableSpotsQueryKey,
   getGetSpotRequestsQueryKey,
   type ParkingSpot,
@@ -37,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -51,8 +56,18 @@ import {
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 const createSpotSchema = z.object({
+  spotType: z.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: z.array(z.string()).optional(),
+  date: z.string().optional(),
   availableFrom: z.string().min(1, "Horário de início é obrigatório"),
   availableUntil: z.string().min(1, "Horário de término é obrigatório"),
+}).superRefine((data, ctx) => {
+  if (data.spotType === "RECURRING" && (!data.daysOfWeek || data.daysOfWeek.length === 0)) {
+    ctx.addIssue({ code: "custom", path: ["daysOfWeek"], message: "Selecione pelo menos um dia" });
+  }
+  if (data.spotType === "ONE_TIME" && !data.date) {
+    ctx.addIssue({ code: "custom", path: ["date"], message: "Data é obrigatória" });
+  }
 });
 
 const confirmSchema = z.object({
@@ -69,11 +84,30 @@ const createRequestSchema = z.object({
   reason: z.string().optional(),
 });
 
+const otpSchema = z.object({
+  code: z.string().length(6, "O código tem 6 dígitos"),
+});
+
+const profileSchema = z.object({
+  carPlate: z.string().optional(),
+  wantsToRequestSpot: z.boolean().optional(),
+});
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const DAYS_OF_WEEK = [
+  { key: "sun", label: "Dom" },
+  { key: "mon", label: "Seg" },
+  { key: "tue", label: "Ter" },
+  { key: "wed", label: "Qua" },
+  { key: "thu", label: "Qui" },
+  { key: "fri", label: "Sex" },
+  { key: "sat", label: "Sáb" },
+];
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   AVAILABLE:            { label: "Disponível",           color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
@@ -85,13 +119,15 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 const invalidateSpots = (qc: ReturnType<typeof useQueryClient>) =>
   qc.invalidateQueries({ queryKey: getGetAvailableSpotsQueryKey() });
 
+const invalidateRequests = (qc: ReturnType<typeof useQueryClient>) =>
+  qc.invalidateQueries({ queryKey: getGetSpotRequestsQueryKey() });
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, login } = useAuth();
   const { data: spots, isLoading: spotsLoading } = useGetAvailableSpots();
   const { data: requests, isLoading: requestsLoading } = useGetSpotRequests();
 
-  // Owner's active spot (any non-FINISHED status)
   const mySpot = spots?.find(
     (s) => s.userId === user?.id && s.status !== "FINISHED"
   );
@@ -111,19 +147,29 @@ export default function Dashboard() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="focus:outline-none hover:opacity-80 transition-opacity">
+              <button className="focus:outline-none hover:opacity-80 transition-opacity relative">
                 <Avatar className="h-8 w-8 border-2 border-white dark:border-slate-800 shadow-sm">
                   <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                     {user?.name ? getInitials(user.name) : "U"}
                   </AvatarFallback>
                 </Avatar>
+                {!user?.phoneVerified && (
+                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-white dark:border-slate-950" />
+                )}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-xl">
               <DropdownMenuLabel className="font-normal">
                 <p className="text-sm font-semibold">{user?.name}</p>
                 <p className="text-xs text-muted-foreground">Apto {user?.apartment}</p>
+                {user?.carPlate && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Car className="w-3 h-3" /> {user.carPlate}
+                  </p>
+                )}
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <ProfileEditTrigger userId={user!.id} currentCarPlate={user?.carPlate} currentWants={user?.wantsToRequestSpot} onUpdate={login} />
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" /> Sair
@@ -134,13 +180,18 @@ export default function Dashboard() {
       </header>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="max-w-md mx-auto p-4 space-y-6 mt-4">
+      <main className="max-w-md mx-auto p-4 space-y-5 mt-4">
         <div className="px-1">
           <h2 className="text-2xl font-display font-semibold text-slate-900 dark:text-white">
             Olá, {user?.name?.split(" ")[0]} 👋
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Compartilhe ou encontre uma vaga hoje.</p>
         </div>
+
+        {/* BANNER VERIFICAÇÃO DE TELEFONE */}
+        {!user?.phoneVerified && (
+          <PhoneVerificationBanner phone={user?.phone ?? ""} onVerified={login} />
+        )}
 
         {/* BOTÕES DE AÇÃO RÁPIDA */}
         <div className="grid grid-cols-2 gap-3">
@@ -153,7 +204,7 @@ export default function Dashboard() {
               </motion.div>
             ) : (
               <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <CreateSpotDialog userId={user!.id} />
+                <CreateSpotDialog userId={user!.id} phoneVerified={user?.phoneVerified ?? false} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -173,7 +224,7 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
 
-        {/* MINHA VAGA — CARD DE ESTADO DETALHADO (apenas dono) */}
+        {/* MINHA VAGA — CARD DE ESTADO DETALHADO */}
         <AnimatePresence>
           {mySpot && (
             <motion.div key="owner-card" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
@@ -195,14 +246,14 @@ export default function Dashboard() {
 
           <TabsContent value="spots" className="mt-4 space-y-4">
             {spotsLoading ? (
-              <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}</div>
+              <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-2xl" />)}</div>
             ) : otherSpots.length === 0 ? (
               <EmptyState icon={<CarFront className="w-8 h-8 text-slate-400" />} title="Nenhuma vaga por aqui" desc="Seja o primeiro a compartilhar sua vaga hoje!" />
             ) : (
               <div className="space-y-4">
                 {otherSpots.map((spot, i) => (
                   <motion.div key={spot.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <SpotCard spot={spot} currentUserId={user!.id} />
+                    <SpotCard spot={spot} currentUser={user!} />
                   </motion.div>
                 ))}
               </div>
@@ -230,8 +281,168 @@ export default function Dashboard() {
   );
 }
 
-// ─── Componentes de suporte ─────────────────────────────────────────────────
+// ─── Phone Verification Banner ───────────────────────────────────────────────
+function PhoneVerificationBanner({ phone, onVerified }: { phone: string; onVerified: (user: any) => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
+  const { mutate: sendOtp, isPending: isSending } = useSendOtp({
+    mutation: {
+      onSuccess: (data) => {
+        setOtpSent(true);
+        setOpen(true);
+        toast({ title: "Código enviado!", description: `Código (dev): ${data.devOtp}` });
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
+    },
+  });
+
+  const { mutate: verifyOtp, isPending: isVerifying } = useVerifyOtp({
+    mutation: {
+      onSuccess: (data) => {
+        setOpen(false);
+        toast({ title: "Telefone verificado!" });
+        onVerified(data);
+      },
+      onError: (err: any) => toast({ title: "Código inválido", description: err?.error, variant: "destructive" }),
+    },
+  });
+
+  const form = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { code: "" },
+  });
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl"
+      >
+        <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Verifique seu telefone</p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Necessário para solicitar vagas</p>
+        </div>
+        <Button
+          size="sm"
+          className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-8 text-xs"
+          onClick={() => sendOtp({ data: { phone } })}
+          disabled={isSending}
+        >
+          {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Verificar"}
+        </Button>
+      </motion.div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> Verificar Telefone
+            </DialogTitle>
+            <DialogDescription>Digite o código enviado para {phone}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit((v) => verifyOtp({ data: { phone, code: v.code } }))} className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Código de verificação</Label>
+              <Input
+                placeholder="000000"
+                maxLength={6}
+                className="h-14 rounded-xl text-center text-2xl tracking-[0.4em] font-mono"
+                {...form.register("code")}
+              />
+              {form.formState.errors.code && <p className="text-xs text-destructive">{form.formState.errors.code.message}</p>}
+            </div>
+            <Button type="submit" className="w-full h-12 rounded-xl" disabled={isVerifying}>
+              {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar código"}
+            </Button>
+            <Button
+              type="button" variant="ghost" size="sm" className="w-full text-slate-500"
+              onClick={() => sendOtp({ data: { phone } })} disabled={isSending}
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Reenviar código
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Profile Edit ────────────────────────────────────────────────────────────
+function ProfileEditTrigger({ userId, currentCarPlate, currentWants, onUpdate }: {
+  userId: number;
+  currentCarPlate?: string | null;
+  currentWants?: boolean;
+  onUpdate: (user: any) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+
+  const { mutate, isPending } = useUpdateProfile({
+    mutation: {
+      onSuccess: (data) => {
+        setOpen(false);
+        toast({ title: "Perfil atualizado!" });
+        onUpdate(data);
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
+    },
+  });
+
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { carPlate: currentCarPlate ?? "", wantsToRequestSpot: currentWants ?? false },
+  });
+
+  return (
+    <>
+      <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setOpen(true); }} className="cursor-pointer">
+        <Settings className="mr-2 h-4 w-4" /> Editar perfil
+      </DropdownMenuItem>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display">Editar Perfil</DialogTitle>
+            <DialogDescription>Atualize sua placa e preferências.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={form.handleSubmit((v) =>
+              mutate({ id: userId, data: { carPlate: v.carPlate || null, wantsToRequestSpot: v.wantsToRequestSpot } })
+            )}
+            className="space-y-5 mt-4"
+          >
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Car className="w-4 h-4" /> Placa do carro</Label>
+              <Input placeholder="ABC1D23" className="h-12 rounded-xl uppercase" {...form.register("carPlate")} />
+              <p className="text-xs text-muted-foreground">Obrigatória para solicitar vagas</p>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div>
+                <p className="text-sm font-semibold">Quero solicitar vagas</p>
+              </div>
+              <Controller
+                control={form.control}
+                name="wantsToRequestSpot"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                )}
+              />
+            </div>
+            <Button type="submit" className="w-full h-12 rounded-xl" disabled={isPending}>
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Componentes de suporte ─────────────────────────────────────────────────
 function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-14 px-4 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
@@ -242,13 +453,13 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
   );
 }
 
-// Botão rápido do dono que reflete o status atual
+// Botão rápido do dono
 function MySpotQuickButton({ spot, userId }: { spot: ParkingSpot; userId: number }) {
   const statusConfig = {
-    AVAILABLE:            { label: "Minha vaga ativa",        icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
-    PENDING_CONFIRMATION: { label: "Confirmar uso",           icon: <UserCheck className="w-4 h-4 mb-0.5" />,    cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
-    OCCUPIED:             { label: "Desocupar vaga",          icon: <KeyRound className="w-4 h-4 mb-0.5" />,     cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
-    FINISHED:             { label: "Encerrada",               icon: <CircleCheck className="w-4 h-4 mb-0.5" />,  cls: "border-slate-200 bg-slate-50 text-slate-500" },
+    AVAILABLE:            { label: "Minha vaga ativa",   icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
+    PENDING_CONFIRMATION: { label: "Confirmar uso",      icon: <UserCheck className="w-4 h-4 mb-0.5" />,    cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
+    OCCUPIED:             { label: "Desocupar vaga",     icon: <KeyRound className="w-4 h-4 mb-0.5" />,     cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
+    FINISHED:             { label: "Encerrada",          icon: <CircleCheck className="w-4 h-4 mb-0.5" />,  cls: "border-slate-200 bg-slate-50 text-slate-500" },
   }[spot.status] ?? { label: spot.status, icon: null, cls: "" };
 
   if (spot.status === "PENDING_CONFIRMATION") {
@@ -257,7 +468,6 @@ function MySpotQuickButton({ spot, userId }: { spot: ParkingSpot; userId: number
   if (spot.status === "OCCUPIED") {
     return <VacateButton spot={spot} triggerCls={statusConfig.cls} triggerLabel={statusConfig.label} triggerIcon={statusConfig.icon} />;
   }
-  // AVAILABLE → allow remove
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -285,10 +495,7 @@ function RemoveSpotAction({ spotId }: { spotId: number }) {
   const { toast } = useToast();
   const { mutate, isPending } = useRemoveSpot({
     mutation: {
-      onSuccess: () => {
-        invalidateSpots(queryClient);
-        toast({ title: "Anúncio removido" });
-      },
+      onSuccess: () => { invalidateSpots(queryClient); toast({ title: "Anúncio removido" }); },
       onError: () => toast({ title: "Erro ao remover", variant: "destructive" }),
     },
   });
@@ -299,22 +506,33 @@ function RemoveSpotAction({ spotId }: { spotId: number }) {
   );
 }
 
-// Card de status detalhado só para o dono
+// Card detalhado do dono
 function OwnerSpotCard({ spot }: { spot: ParkingSpot }) {
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
+
+  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
+    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
+    : null;
 
   return (
     <Card className="rounded-3xl border border-primary/15 bg-primary/5 dark:bg-primary/10 p-5 space-y-3 shadow-inner overflow-hidden relative">
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
 
-      <div className="flex items-center gap-2">
-        <Badge className={`border-0 text-xs font-bold uppercase tracking-wider ${st.color}`}>
-          {st.label}
-        </Badge>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge className={`border-0 text-xs font-bold uppercase tracking-wider ${st.color}`}>{st.label}</Badge>
+        {spot.spotType === "RECURRING" && (
+          <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
+            <RotateCcw className="w-3 h-3 mr-1" /> Recorrente
+          </Badge>
+        )}
         <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} às {spot.availableUntil}
         </span>
       </div>
+
+      {recurringLabel && (
+        <p className="text-xs text-primary/80 font-medium">{recurringLabel}</p>
+      )}
 
       {spot.status === "PENDING_CONFIRMATION" && spot.interestedUserName && (
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800 space-y-1">
@@ -346,29 +564,58 @@ function OwnerSpotCard({ spot }: { spot: ParkingSpot }) {
   );
 }
 
-// ─── Dialogs / Actions ──────────────────────────────────────────────────────
-
-function CreateSpotDialog({ userId }: { userId: number }) {
+// ─── Dialogs ─────────────────────────────────────────────────────────────────
+function CreateSpotDialog({ userId, phoneVerified }: { userId: number; phoneVerified: boolean }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
   const form = useForm<z.infer<typeof createSpotSchema>>({
     resolver: zodResolver(createSpotSchema),
-    defaultValues: { availableFrom: "09:00", availableUntil: "17:00" },
+    defaultValues: {
+      spotType: "ONE_TIME",
+      daysOfWeek: [],
+      date: todayStr(),
+      availableFrom: "09:00",
+      availableUntil: "17:00",
+    },
   });
+
+  const spotType = form.watch("spotType");
+  const selectedDays = form.watch("daysOfWeek") ?? [];
+
   const { mutate, isPending } = useCreateSpot({
     mutation: {
       onSuccess: () => {
         invalidateSpots(queryClient);
         setOpen(false);
         toast({ title: "Vaga compartilhada!", description: "Obrigado por ajudar o condomínio." });
-        form.reset();
+        form.reset({ spotType: "ONE_TIME", daysOfWeek: [], date: todayStr(), availableFrom: "09:00", availableUntil: "17:00" });
       },
       onError: (err: any) => toast({ title: "Erro ao compartilhar", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
+
+  function handleOpenChange(v: boolean) {
+    if (v && !phoneVerified) {
+      toast({
+        title: "Verifique seu telefone",
+        description: "Valide seu telefone para compartilhar vagas.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setOpen(v);
+  }
+
+  function toggleDay(day: string) {
+    const current = form.getValues("daysOfWeek") ?? [];
+    const updated = current.includes(day) ? current.filter((d) => d !== day) : [...current, day];
+    form.setValue("daysOfWeek", updated, { shouldValidate: true });
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="lg" className="w-full h-14 rounded-2xl shadow-lg shadow-primary/25 font-semibold text-sm relative overflow-hidden group flex-col gap-0.5 px-3">
           <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out skew-x-12" />
@@ -379,9 +626,85 @@ function CreateSpotDialog({ userId }: { userId: number }) {
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Liberar Vaga</DialogTitle>
-          <DialogDescription>Informe o horário em que sua vaga estará livre hoje.</DialogDescription>
+          <DialogDescription>Defina quando sua vaga estará disponível.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v } }))} className="space-y-6 mt-4">
+
+        <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v } }))} className="space-y-5 mt-4">
+          {/* Tipo de disponibilidade */}
+          <div className="grid grid-cols-2 gap-2">
+            {(["ONE_TIME", "RECURRING"] as const).map((type) => {
+              const isSelected = spotType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => form.setValue("spotType", type, { shouldValidate: true })}
+                  className={`p-3 rounded-2xl border-2 text-sm font-semibold transition-all text-left ${
+                    isSelected
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
+                  }`}
+                >
+                  {type === "ONE_TIME" ? (
+                    <><CalendarDays className="w-4 h-4 mb-1" /><br />Pontual</>
+                  ) : (
+                    <><RotateCcw className="w-4 h-4 mb-1" /><br />Recorrente</>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dias da semana (RECURRING) */}
+          <AnimatePresence mode="wait">
+            {spotType === "RECURRING" ? (
+              <motion.div key="recurring" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="space-y-2">
+                  <Label>Dias da semana</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {DAYS_OF_WEEK.map((d) => {
+                      const active = selectedDays.includes(d.key);
+                      return (
+                        <button
+                          key={d.key}
+                          type="button"
+                          onClick={() => toggleDay(d.key)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all ${
+                            active
+                              ? "bg-primary text-white border-primary"
+                              : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.formState.errors.daysOfWeek && (
+                    <p className="text-xs text-destructive">{form.formState.errors.daysOfWeek.message}</p>
+                  )}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="onetime" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <div className="space-y-2">
+                  <Label htmlFor="spot-date">Data</Label>
+                  <Input
+                    type="date"
+                    id="spot-date"
+                    min={todayStr()}
+                    className="h-12 rounded-xl"
+                    {...form.register("date")}
+                  />
+                  {form.formState.errors.date && (
+                    <p className="text-xs text-destructive">{form.formState.errors.date.message}</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Horário */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="availableFrom">Disponível das</Label>
@@ -394,6 +717,7 @@ function CreateSpotDialog({ userId }: { userId: number }) {
               {form.formState.errors.availableUntil && <p className="text-xs text-destructive">{form.formState.errors.availableUntil.message}</p>}
             </div>
           </div>
+
           <Button type="submit" className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25" disabled={isPending}>
             {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar Anúncio"}
           </Button>
@@ -469,8 +793,8 @@ function ConfirmOccupationDialog({
               {form.formState.errors.expectedExitTime && <p className="text-xs text-destructive">{form.formState.errors.expectedExitTime.message}</p>}
             </div>
           </div>
-          <Button type="submit" className="w-full h-12 rounded-xl text-base" disabled={isPending}>
-            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmar Uso"}
+          <Button type="submit" className="w-full h-12 rounded-xl shadow-lg shadow-primary/25" disabled={isPending}>
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Uso"}
           </Button>
         </form>
       </DialogContent>
@@ -487,9 +811,7 @@ function VacateButton({
     mutation: {
       onSuccess: (data: any) => {
         invalidateSpots(queryClient);
-        const msg = data?.status === "AVAILABLE"
-          ? "Vaga de volta como disponível!"
-          : "Vaga marcada como encerrada.";
+        const msg = data?.status === "AVAILABLE" ? "Vaga de volta como disponível!" : "Vaga marcada como encerrada.";
         toast({ title: "Vaga desocupada", description: msg });
       },
       onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
@@ -509,10 +831,8 @@ function VacateButton({
       </AlertDialogTrigger>
       <AlertDialogContent className="rounded-3xl">
         <AlertDialogHeader>
-          <AlertDialogTitle>Marcar como desocupada?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Se o horário de disponibilidade ainda não terminou, a vaga voltará a ficar <strong>Disponível</strong> automaticamente.
-          </AlertDialogDescription>
+          <AlertDialogTitle>Desocupar vaga?</AlertDialogTitle>
+          <AlertDialogDescription>A vaga ficará disponível novamente se ainda estiver dentro do horário.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
@@ -523,100 +843,119 @@ function VacateButton({
   );
 }
 
-// ─── SpotCard para outros usuários ──────────────────────────────────────────
-function SpotCard({ spot, currentUserId }: { spot: ParkingSpot; currentUserId: number }) {
+// ─── SpotCard ────────────────────────────────────────────────────────────────
+function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; phoneVerified?: boolean; carPlate?: string | null } }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isInterestedUser = spot.interestedUserId === currentUserId;
+
+  const isInterestedUser = spot.interestedUserId === currentUser.id;
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
+
+  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
+    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
+    : null;
 
   const { mutate: expressInterest, isPending: expressing } = useExpressInterest({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         invalidateSpots(queryClient);
-        toast({ title: "Interesse expresso!", description: "Aguarde a confirmação do dono." });
+        const token = data?.approvalToken;
+        if (token) {
+          const base = import.meta.env.BASE_URL ?? "/";
+          const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
+          const msg = `Oi! Solicitei sua vaga no CondoPark.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
+          const phone = (data.userPhone ?? "").replace(/\D/g, "");
+          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+          toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
+        }
       },
       onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 
+  function handleTalkToOwner() {
+    if (!currentUser.phoneVerified) {
+      toast({ title: "Verifique seu telefone", description: "Valide seu telefone para solicitar vagas.", variant: "destructive" });
+      return;
+    }
+    if (!currentUser.carPlate) {
+      toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
+      return;
+    }
+    expressInterest({ id: spot.id, data: { interestedUserId: currentUser.id } });
+  }
+
   return (
-    <Card className="overflow-hidden rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-slate-900/50 dark:border-slate-800">
-      <div className="p-5 flex items-start gap-4">
-        <Avatar className="h-12 w-12 border-2 border-slate-50 dark:border-slate-800 shadow-sm">
-          <AvatarFallback className="bg-gradient-to-br from-indigo-100 to-sky-100 text-indigo-700 dark:from-indigo-900 dark:to-sky-900 dark:text-indigo-200 font-bold text-sm">
-            {getInitials(spot.userName)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 font-display text-lg">{spot.userName}</h3>
-            <Badge className={`border-0 text-xs font-semibold ${st.color}`}>{st.label}</Badge>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-            <Building2 className="w-3.5 h-3.5" /> Apto {spot.userApartment}
-          </p>
-          <div className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl px-3 py-2.5 w-fit border border-slate-200/50 dark:border-slate-700/50">
-            <Clock className="w-4 h-4 text-primary" />
-            {spot.availableFrom} <span className="text-slate-400 font-normal mx-1">às</span> {spot.availableUntil}
-          </div>
-
-          {/* Ocupante visível para todos */}
-          {spot.status === "OCCUPIED" && spot.occupantName && (
-            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Car className="w-3.5 h-3.5" /> {spot.carPlate} · saída {spot.expectedExitTime}
+    <Card className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow">
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-11 w-11 border-2 border-primary/10 shadow-sm">
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
+                {getInitials(spot.userName)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-white leading-tight">{spot.userName}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> Apto {spot.userApartment}
+              </p>
             </div>
-          )}
+          </div>
+          <Badge className={`border-0 text-xs font-bold ${st.color} shrink-0`}>{st.label}</Badge>
         </div>
-      </div>
 
-      <div className="px-5 pb-5 pt-0">
+        <div className="mt-3 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} – {spot.availableUntil}
+          </span>
+          {spot.spotType === "RECURRING" ? (
+            <span className="flex items-center gap-1.5 text-primary font-medium">
+              <RotateCcw className="w-3.5 h-3.5" /> {recurringLabel}
+            </span>
+          ) : spot.date ? (
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5" /> {spot.date}
+            </span>
+          ) : null}
+        </div>
+
         {spot.status === "AVAILABLE" && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="w-full font-semibold shadow-sm h-12 rounded-xl hover:-translate-y-0.5 transition-transform" disabled={expressing}>
-                {expressing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <AlertCircle className="w-4 h-4 mr-2" />}
-                Tenho interesse
+          <div className="mt-4">
+            {isInterestedUser ? (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
+                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">Aguardando aprovação</span>
+              </div>
+            ) : (
+              <Button
+                className="w-full h-11 rounded-2xl font-semibold text-sm gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-500/20"
+                onClick={handleTalkToOwner}
+                disabled={expressing}
+              >
+                {expressing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <MessageCircle className="w-4 h-4" /> Falar com dono da vaga
+                  </>
+                )}
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-3xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Confirmar interesse?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  O dono da vaga ({spot.userName}) será notificado e poderá confirmar o uso.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => expressInterest({ id: spot.id, data: { interestedUserId: currentUserId } })} className="rounded-xl">
-                  Confirmar interesse
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        {spot.status === "PENDING_CONFIRMATION" && isInterestedUser && (
-          <div className="flex items-center justify-center gap-2 h-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 text-sm font-medium">
-            <Loader2 className="w-4 h-4 animate-spin" /> Aguardando confirmação do dono...
+            )}
           </div>
         )}
 
         {spot.status === "PENDING_CONFIRMATION" && !isInterestedUser && (
-          <div className="flex items-center justify-center gap-2 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 text-sm">
-            Reservada — aguardando confirmação
+          <div className="mt-3 flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
+            <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+            <span className="text-sm text-yellow-700 dark:text-yellow-300">Aguardando confirmação do dono</span>
           </div>
         )}
 
         {spot.status === "OCCUPIED" && (
-          <div className="flex items-center justify-center gap-2 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">
-            <Car className="w-4 h-4" /> Ocupada no momento
-          </div>
-        )}
-
-        {spot.status === "FINISHED" && (
-          <div className="flex items-center justify-center gap-2 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 text-sm">
-            <CircleCheck className="w-4 h-4" /> Encerrada
+          <div className="mt-3 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+            <Car className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <span className="text-sm text-red-700 dark:text-red-300 font-medium">Ocupada no momento</span>
           </div>
         )}
       </div>
@@ -624,7 +963,47 @@ function SpotCard({ spot, currentUserId }: { spot: ParkingSpot; currentUserId: n
   );
 }
 
-// ─── Pedidos ─────────────────────────────────────────────────────────────────
+// ─── Request Dialogs ─────────────────────────────────────────────────────────
+function ActiveRequestButton({ request }: { request: SpotRequest }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { mutate, isPending } = useDeleteSpotRequest({
+    mutation: {
+      onSuccess: () => {
+        invalidateRequests(queryClient);
+        toast({ title: "Pedido cancelado" });
+      },
+      onError: () => toast({ title: "Erro ao cancelar", variant: "destructive" }),
+    },
+  });
+  const isMatched = request.status === "matched";
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="lg" className={`w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${
+          isMatched
+            ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400"
+            : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+        }`}>
+          <HandHelping className="w-4 h-4 mb-0.5" />
+          <span className="leading-tight">{isMatched ? "Vaga encontrada!" : "Pedido ativo"}</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="rounded-3xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar pedido?</AlertDialogTitle>
+          <AlertDialogDescription>Seu pedido de vaga será removido.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-xl">Manter</AlertDialogCancel>
+          <AlertDialogAction onClick={() => mutate({ id: request.id })} className="rounded-xl bg-destructive hover:bg-destructive/90" disabled={isPending}>
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cancelar pedido"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
 function CreateRequestDialog({ userId }: { userId: number }) {
   const [open, setOpen] = useState(false);
@@ -632,23 +1011,23 @@ function CreateRequestDialog({ userId }: { userId: number }) {
   const { toast } = useToast();
   const form = useForm<z.infer<typeof createRequestSchema>>({
     resolver: zodResolver(createRequestSchema),
-    defaultValues: { date: todayStr(), startTime: "08:00", endTime: "18:00", reason: "" },
+    defaultValues: { date: todayStr(), startTime: "09:00", endTime: "17:00", reason: "" },
   });
   const { mutate, isPending } = useCreateSpotRequest({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSpotRequestsQueryKey() });
+        invalidateRequests(queryClient);
         setOpen(false);
-        toast({ title: "Pedido enviado!" });
-        form.reset({ date: todayStr(), startTime: "08:00", endTime: "18:00", reason: "" });
+        toast({ title: "Pedido publicado!", description: "Aguarde um morador oferecer sua vaga." });
+        form.reset({ date: todayStr(), startTime: "09:00", endTime: "17:00", reason: "" });
       },
-      onError: (err: any) => toast({ title: "Erro ao enviar pedido", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro ao publicar", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" variant="outline" className="w-full h-14 rounded-2xl border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400 font-semibold text-sm flex-col gap-0.5 px-3">
+        <Button variant="outline" size="lg" className="w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
           <HandHelping className="w-4 h-4 mb-0.5" />
           <span className="leading-tight">Preciso de vaga</span>
         </Button>
@@ -656,12 +1035,12 @@ function CreateRequestDialog({ userId }: { userId: number }) {
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Solicitar Vaga</DialogTitle>
-          <DialogDescription>Informe quando você precisa de uma vaga.</DialogDescription>
+          <DialogDescription>Publique seu pedido para que outros moradores vejam.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v, reason: v.reason || null } }))} className="space-y-5 mt-4">
+        <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v } }))} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label>Data</Label>
-            <Input type="date" className="h-12 rounded-xl" {...form.register("date")} />
+            <Input type="date" min={todayStr()} className="h-12 rounded-xl" {...form.register("date")} />
             {form.formState.errors.date && <p className="text-xs text-destructive">{form.formState.errors.date.message}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -675,11 +1054,11 @@ function CreateRequestDialog({ userId }: { userId: number }) {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Motivo <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-            <Input placeholder="ex: visita, mudança..." className="h-12 rounded-xl" {...form.register("reason")} />
+            <Label>Motivo (opcional)</Label>
+            <Input className="h-12 rounded-xl" placeholder="Ex: visita, mudança..." {...form.register("reason")} />
           </div>
-          <Button type="submit" className="w-full h-12 rounded-xl text-base" disabled={isPending}>
-            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enviar Pedido"}
+          <Button type="submit" className="w-full h-12 rounded-xl shadow-lg shadow-primary/25" disabled={isPending}>
+            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar Pedido"}
           </Button>
         </form>
       </DialogContent>
@@ -687,135 +1066,75 @@ function CreateRequestDialog({ userId }: { userId: number }) {
   );
 }
 
-function ActiveRequestButton({ request }: { request: SpotRequest }) {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const { mutate, isPending } = useDeleteSpotRequest({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSpotRequestsQueryKey() });
-        toast({ title: "Pedido removido" });
-      },
-      onError: () => toast({ title: "Erro ao remover", variant: "destructive" }),
-    },
-  });
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="lg" variant="outline" className="w-full h-14 rounded-2xl border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400 font-semibold text-sm flex-col gap-0.5 px-3" disabled={isPending}>
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mb-0.5" />}
-          <span className="leading-tight">Meu pedido ativo</span>
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent className="rounded-3xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Cancelar pedido?</AlertDialogTitle>
-          <AlertDialogDescription>Seu pedido será removido da lista.</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-xl">Manter</AlertDialogCancel>
-          <AlertDialogAction onClick={() => mutate({ id: request.id })} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Cancelar pedido
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
 function RequestCard({ request, currentUserId }: { request: SpotRequest; currentUserId: number }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isOwner = request.userId === currentUserId;
+  const isOwn = request.userId === currentUserId;
   const isMatched = request.status === "matched";
 
-  const { mutate: offerSpot, isPending } = useOfferSpotForRequest({
+  const { mutate: offerSpot, isPending: offering } = useOfferSpotForRequest({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSpotRequestsQueryKey() });
-        toast({ title: "Vaga oferecida!", description: "O morador foi combinado com você." });
+        invalidateRequests(queryClient);
+        toast({ title: "Vaga oferecida!", description: "O solicitante foi notificado." });
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => toast({ title: "Erro", description: err?.error, variant: "destructive" }),
+    },
+  });
+
+  const { mutate: deleteRequest, isPending: deleting } = useDeleteSpotRequest({
+    mutation: {
+      onSuccess: () => { invalidateRequests(queryClient); toast({ title: "Pedido removido" }); },
+      onError: () => toast({ title: "Erro ao remover", variant: "destructive" }),
     },
   });
 
   return (
-    <Card className={`overflow-hidden rounded-3xl border shadow-sm bg-white dark:bg-slate-900/50 ${isMatched ? "border-green-200 dark:border-green-800" : "border-amber-100 dark:border-amber-900/50"}`}>
-      <div className="p-5">
-        <div className="flex items-start gap-3 mb-3">
-          <Avatar className="h-11 w-11 border-2 border-slate-50 dark:border-slate-800 shadow-sm shrink-0">
-            <AvatarFallback className="bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 dark:from-amber-900 dark:to-orange-900 dark:text-amber-200 font-bold text-sm">
-              {getInitials(request.userName)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 font-display">{request.userName}</h3>
-              <Badge className={`border-0 text-xs px-2 ${isMatched ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"}`}>
-                {isMatched ? "Atendido" : "Em aberto"}
-              </Badge>
+    <Card className={`rounded-3xl overflow-hidden border bg-white dark:bg-slate-900 shadow-sm ${
+      isMatched ? "border-green-200 dark:border-green-800" : "border-slate-200/80 dark:border-slate-800"
+    }`}>
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 border-2 border-blue-100 shadow-sm">
+              <AvatarFallback className="bg-blue-50 text-blue-600 font-bold text-sm">{getInitials(request.userName)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-white">{request.userName}</p>
+              <p className="text-xs text-slate-500 flex items-center gap-1"><Building2 className="w-3 h-3" /> Apto {request.userApartment}</p>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-              <Building2 className="w-3.5 h-3.5" /> Apto {request.userApartment}
-            </p>
           </div>
+          <Badge className={`border-0 text-xs font-bold shrink-0 ${isMatched ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"}`}>
+            {isMatched ? "Atendido" : "Aberto"}
+          </Badge>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2.5 mb-3">
-          <CalendarDays className="w-4 h-4 text-amber-500 shrink-0" />
-          <span className="font-medium">{new Date(request.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}</span>
-          <span className="text-slate-400 mx-1">·</span>
-          <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-          <span>{request.startTime} às {request.endTime}</span>
+        <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1">
+          <p className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> {request.date}</p>
+          <p className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {request.startTime} – {request.endTime}</p>
+          {request.reason && <p className="text-xs italic">{request.reason}</p>}
         </div>
 
-        {request.reason && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 px-1 italic mb-3">"{request.reason}"</p>
-        )}
-
-        {isMatched && (
-          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-800 space-y-2 mb-2">
-            <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Combinado! Contactem-se:
-            </p>
-            <a href={`tel:${request.userPhone}`} className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-primary">
-              <Phone className="w-3.5 h-3.5 text-primary" /> {request.userName}: {request.userPhone}
+        {isMatched && request.offeredByUserName && (
+          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-200 dark:border-green-800">
+            <p className="text-xs font-semibold text-green-700 dark:text-green-400">Vaga oferecida por</p>
+            <p className="font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{request.offeredByUserName}</p>
+            <a href={`tel:${request.offeredByUserPhone}`} className="flex items-center gap-1 text-sm text-primary hover:underline mt-1">
+              <Phone className="w-3.5 h-3.5" /> {request.offeredByUserPhone}
             </a>
-            {request.offeredByUserPhone && (
-              <a href={`tel:${request.offeredByUserPhone}`} className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-200 hover:text-primary">
-                <Phone className="w-3.5 h-3.5 text-primary" /> {request.offeredByUserName}: {request.offeredByUserPhone}
-              </a>
-            )}
           </div>
         )}
 
-        {!isOwner && !isMatched && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="w-full h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-semibold shadow-sm hover:-translate-y-0.5 transition-transform" disabled={isPending}>
-                {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <HandHelping className="w-4 h-4 mr-2" />}
-                Oferecer minha vaga
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-3xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Oferecer sua vaga?</AlertDialogTitle>
-                <AlertDialogDescription>Você e {request.userName} receberão os telefones um do outro para combinar.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => offerSpot({ id: request.id, data: { offeredByUserId: currentUserId } })} className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white">
-                  Confirmar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        {!isOwn && !isMatched && (
+          <Button size="sm" className="w-full h-10 rounded-2xl font-semibold gap-2" onClick={() => offerSpot({ id: request.id, data: { offeredByUserId: currentUserId } })} disabled={offering}>
+            {offering ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4" /> Oferecer minha vaga</>}
+          </Button>
         )}
 
-        {isOwner && isMatched && (
-          <p className="text-center text-sm text-green-700 dark:text-green-400 font-medium">
-            Um morador ofereceu a vaga! Entre em contato acima.
-          </p>
+        {isOwn && (
+          <Button variant="ghost" size="sm" className="w-full h-9 rounded-2xl text-destructive hover:bg-destructive/10" onClick={() => deleteRequest({ id: request.id })} disabled={deleting}>
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4 mr-1.5" /> Cancelar pedido</>}
+          </Button>
         )}
       </div>
     </Card>

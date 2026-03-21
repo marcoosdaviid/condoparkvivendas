@@ -21,6 +21,8 @@ export const RegisterUserBody = zod.object({
   name: zod.string(),
   apartment: zod.string(),
   phone: zod.string(),
+  carPlate: zod.string().nullish(),
+  wantsToRequestSpot: zod.boolean().optional(),
 });
 
 /**
@@ -35,11 +37,68 @@ export const LoginUserResponse = zod.object({
   name: zod.string(),
   apartment: zod.string(),
   phone: zod.string(),
+  carPlate: zod.string().nullish(),
+  wantsToRequestSpot: zod.boolean(),
+  phoneVerified: zod.boolean(),
   createdAt: zod.date(),
 });
 
 /**
- * @summary Get all parking spots for today
+ * @summary Send OTP code to phone number
+ */
+export const SendOtpBody = zod.object({
+  phone: zod.string(),
+});
+
+export const SendOtpResponse = zod.object({
+  message: zod.string(),
+  devOtp: zod.string().nullish(),
+});
+
+/**
+ * @summary Verify OTP code and mark phone as verified
+ */
+export const VerifyOtpBody = zod.object({
+  phone: zod.string(),
+  code: zod.string(),
+});
+
+export const VerifyOtpResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  apartment: zod.string(),
+  phone: zod.string(),
+  carPlate: zod.string().nullish(),
+  wantsToRequestSpot: zod.boolean(),
+  phoneVerified: zod.boolean(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Update user profile (car plate, preferences)
+ */
+export const UpdateProfileParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProfileBody = zod.object({
+  carPlate: zod.string().nullish(),
+  wantsToRequestSpot: zod.boolean().optional(),
+});
+
+export const UpdateProfileResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  apartment: zod.string(),
+  phone: zod.string(),
+  carPlate: zod.string().nullish(),
+  wantsToRequestSpot: zod.boolean(),
+  phoneVerified: zod.boolean(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Get all parking spots for today (one-time and recurring)
  */
 export const GetAvailableSpotsResponseItem = zod.object({
   id: zod.number(),
@@ -47,9 +106,11 @@ export const GetAvailableSpotsResponseItem = zod.object({
   userName: zod.string(),
   userApartment: zod.string(),
   userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
-  date: zod.string(),
+  date: zod.string().nullish(),
   status: zod.enum([
     "AVAILABLE",
     "PENDING_CONFIRMATION",
@@ -60,6 +121,7 @@ export const GetAvailableSpotsResponseItem = zod.object({
   interestedUserName: zod.string().nullish(),
   interestedUserPhone: zod.string().nullish(),
   interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
   occupantName: zod.string().nullish(),
   occupantApartment: zod.string().nullish(),
   carPlate: zod.string().nullish(),
@@ -71,12 +133,52 @@ export const GetAvailableSpotsResponse = zod.array(
 );
 
 /**
- * @summary Share a parking spot as available today
+ * @summary Share a parking spot (one-time or recurring)
  */
 export const CreateSpotBody = zod.object({
   userId: zod.number(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]).optional(),
+  daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
+  date: zod.string().nullish(),
+});
+
+/**
+ * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ */
+export const ApproveBookingQueryParams = zod.object({
+  spotId: zod.coerce.number(),
+  token: zod.coerce.string(),
+});
+
+export const ApproveBookingResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  userName: zod.string(),
+  userApartment: zod.string(),
+  userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
+  availableFrom: zod.string(),
+  availableUntil: zod.string(),
+  date: zod.string().nullish(),
+  status: zod.enum([
+    "AVAILABLE",
+    "PENDING_CONFIRMATION",
+    "OCCUPIED",
+    "FINISHED",
+  ]),
+  interestedUserId: zod.number().nullish(),
+  interestedUserName: zod.string().nullish(),
+  interestedUserPhone: zod.string().nullish(),
+  interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
+  occupantName: zod.string().nullish(),
+  occupantApartment: zod.string().nullish(),
+  carPlate: zod.string().nullish(),
+  expectedExitTime: zod.string().nullish(),
+  createdAt: zod.date(),
 });
 
 /**
@@ -107,9 +209,11 @@ export const ExpressInterestResponse = zod.object({
   userName: zod.string(),
   userApartment: zod.string(),
   userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
-  date: zod.string(),
+  date: zod.string().nullish(),
   status: zod.enum([
     "AVAILABLE",
     "PENDING_CONFIRMATION",
@@ -120,6 +224,7 @@ export const ExpressInterestResponse = zod.object({
   interestedUserName: zod.string().nullish(),
   interestedUserPhone: zod.string().nullish(),
   interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
   occupantName: zod.string().nullish(),
   occupantApartment: zod.string().nullish(),
   carPlate: zod.string().nullish(),
@@ -147,9 +252,11 @@ export const ConfirmOccupationResponse = zod.object({
   userName: zod.string(),
   userApartment: zod.string(),
   userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
-  date: zod.string(),
+  date: zod.string().nullish(),
   status: zod.enum([
     "AVAILABLE",
     "PENDING_CONFIRMATION",
@@ -160,6 +267,7 @@ export const ConfirmOccupationResponse = zod.object({
   interestedUserName: zod.string().nullish(),
   interestedUserPhone: zod.string().nullish(),
   interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
   occupantName: zod.string().nullish(),
   occupantApartment: zod.string().nullish(),
   carPlate: zod.string().nullish(),
@@ -180,9 +288,11 @@ export const VacateSpotResponse = zod.object({
   userName: zod.string(),
   userApartment: zod.string(),
   userPhone: zod.string(),
+  spotType: zod.enum(["ONE_TIME", "RECURRING"]),
+  daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
-  date: zod.string(),
+  date: zod.string().nullish(),
   status: zod.enum([
     "AVAILABLE",
     "PENDING_CONFIRMATION",
@@ -193,6 +303,7 @@ export const VacateSpotResponse = zod.object({
   interestedUserName: zod.string().nullish(),
   interestedUserPhone: zod.string().nullish(),
   interestedUserApartment: zod.string().nullish(),
+  approvalToken: zod.string().nullish(),
   occupantName: zod.string().nullish(),
   occupantApartment: zod.string().nullish(),
   carPlate: zod.string().nullish(),

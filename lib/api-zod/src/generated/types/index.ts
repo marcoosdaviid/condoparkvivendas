@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./approveBookingParams";
 export * from "./confirmOccupationInput";
 export * from "./createSpotInput";
+export * from "./createSpotInputSpotType";
 export * from "./createSpotRequestInput";
 export * from "./errorResponse";
 export * from "./expressInterestInput";
@@ -15,9 +17,14 @@ export * from "./healthStatus";
 export * from "./loginInput";
 export * from "./offerSpotInput";
 export * from "./parkingSpot";
+export * from "./parkingSpotSpotType";
 export * from "./parkingSpotStatus";
 export * from "./registerUserInput";
+export * from "./sendOtpInput";
+export * from "./sendOtpResponse";
 export * from "./spotRequest";
 export * from "./spotRequestStatus";
 export * from "./successResponse";
+export * from "./updateProfileInput";
 export * from "./user";
+export * from "./verifyOtpInput";

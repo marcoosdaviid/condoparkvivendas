@@ -5,9 +5,13 @@
  * Condo Parking Spot Sharing API
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateSpotInputSpotType } from "./createSpotInputSpotType";
 
 export interface CreateSpotInput {
   userId: number;
+  spotType?: CreateSpotInputSpotType;
+  daysOfWeek?: string[] | null;
   availableFrom: string;
   availableUntil: string;
+  date?: string | null;
 }

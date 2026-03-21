@@ -6,10 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RegisterUserInput {
-  name: string;
-  apartment: string;
+export interface SendOtpInput {
   phone: string;
-  carPlate?: string | null;
-  wantsToRequestSpot?: boolean;
 }

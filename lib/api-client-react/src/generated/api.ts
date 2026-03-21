@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ApproveBookingParams,
   ConfirmOccupationInput,
   CreateSpotInput,
   CreateSpotRequestInput,
@@ -27,9 +28,13 @@ import type {
   OfferSpotInput,
   ParkingSpot,
   RegisterUserInput,
+  SendOtpInput,
+  SendOtpResponse,
   SpotRequest,
   SuccessResponse,
+  UpdateProfileInput,
   User,
+  VerifyOtpInput,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -289,7 +294,266 @@ export const useLoginUser = <
 };
 
 /**
- * @summary Get all parking spots for today
+ * @summary Send OTP code to phone number
+ */
+export const getSendOtpUrl = () => {
+  return `/api/users/send-otp`;
+};
+
+export const sendOtp = async (
+  sendOtpInput: SendOtpInput,
+  options?: RequestInit,
+): Promise<SendOtpResponse> => {
+  return customFetch<SendOtpResponse>(getSendOtpUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendOtpInput),
+  });
+};
+
+export const getSendOtpMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendOtp>>,
+    TError,
+    { data: BodyType<SendOtpInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendOtp>>,
+  TError,
+  { data: BodyType<SendOtpInput> },
+  TContext
+> => {
+  const mutationKey = ["sendOtp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendOtp>>,
+    { data: BodyType<SendOtpInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendOtp(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendOtpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendOtp>>
+>;
+export type SendOtpMutationBody = BodyType<SendOtpInput>;
+export type SendOtpMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Send OTP code to phone number
+ */
+export const useSendOtp = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendOtp>>,
+    TError,
+    { data: BodyType<SendOtpInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendOtp>>,
+  TError,
+  { data: BodyType<SendOtpInput> },
+  TContext
+> => {
+  return useMutation(getSendOtpMutationOptions(options));
+};
+
+/**
+ * @summary Verify OTP code and mark phone as verified
+ */
+export const getVerifyOtpUrl = () => {
+  return `/api/users/verify-otp`;
+};
+
+export const verifyOtp = async (
+  verifyOtpInput: VerifyOtpInput,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getVerifyOtpUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(verifyOtpInput),
+  });
+};
+
+export const getVerifyOtpMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyOtp>>,
+    TError,
+    { data: BodyType<VerifyOtpInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof verifyOtp>>,
+  TError,
+  { data: BodyType<VerifyOtpInput> },
+  TContext
+> => {
+  const mutationKey = ["verifyOtp"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof verifyOtp>>,
+    { data: BodyType<VerifyOtpInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return verifyOtp(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type VerifyOtpMutationResult = NonNullable<
+  Awaited<ReturnType<typeof verifyOtp>>
+>;
+export type VerifyOtpMutationBody = BodyType<VerifyOtpInput>;
+export type VerifyOtpMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Verify OTP code and mark phone as verified
+ */
+export const useVerifyOtp = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof verifyOtp>>,
+    TError,
+    { data: BodyType<VerifyOtpInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof verifyOtp>>,
+  TError,
+  { data: BodyType<VerifyOtpInput> },
+  TContext
+> => {
+  return useMutation(getVerifyOtpMutationOptions(options));
+};
+
+/**
+ * @summary Update user profile (car plate, preferences)
+ */
+export const getUpdateProfileUrl = (id: number) => {
+  return `/api/users/${id}`;
+};
+
+export const updateProfile = async (
+  id: number,
+  updateProfileInput: UpdateProfileInput,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(getUpdateProfileUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProfileInput),
+  });
+};
+
+export const getUpdateProfileMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProfile>>,
+    TError,
+    { id: number; data: BodyType<UpdateProfileInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  { id: number; data: BodyType<UpdateProfileInput> },
+  TContext
+> => {
+  const mutationKey = ["updateProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProfile>>,
+    { id: number; data: BodyType<UpdateProfileInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProfile(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProfile>>
+>;
+export type UpdateProfileMutationBody = BodyType<UpdateProfileInput>;
+export type UpdateProfileMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update user profile (car plate, preferences)
+ */
+export const useUpdateProfile = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProfile>>,
+    TError,
+    { id: number; data: BodyType<UpdateProfileInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProfile>>,
+  TError,
+  { id: number; data: BodyType<UpdateProfileInput> },
+  TContext
+> => {
+  return useMutation(getUpdateProfileMutationOptions(options));
+};
+
+/**
+ * @summary Get all parking spots for today (one-time and recurring)
  */
 export const getGetAvailableSpotsUrl = () => {
   return `/api/spots`;
@@ -340,7 +604,7 @@ export type GetAvailableSpotsQueryResult = NonNullable<
 export type GetAvailableSpotsQueryError = ErrorType<unknown>;
 
 /**
- * @summary Get all parking spots for today
+ * @summary Get all parking spots for today (one-time and recurring)
  */
 
 export function useGetAvailableSpots<
@@ -364,7 +628,7 @@ export function useGetAvailableSpots<
 }
 
 /**
- * @summary Share a parking spot as available today
+ * @summary Share a parking spot (one-time or recurring)
  */
 export const getCreateSpotUrl = () => {
   return `/api/spots`;
@@ -427,7 +691,7 @@ export type CreateSpotMutationBody = BodyType<CreateSpotInput>;
 export type CreateSpotMutationError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Share a parking spot as available today
+ * @summary Share a parking spot (one-time or recurring)
  */
 export const useCreateSpot = <
   TError = ErrorType<ErrorResponse>,
@@ -448,6 +712,100 @@ export const useCreateSpot = <
 > => {
   return useMutation(getCreateSpotMutationOptions(options));
 };
+
+/**
+ * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ */
+export const getApproveBookingUrl = (params: ApproveBookingParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/spots/approve?${stringifiedParams}`
+    : `/api/spots/approve`;
+};
+
+export const approveBooking = async (
+  params: ApproveBookingParams,
+  options?: RequestInit,
+): Promise<ParkingSpot> => {
+  return customFetch<ParkingSpot>(getApproveBookingUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getApproveBookingQueryKey = (params?: ApproveBookingParams) => {
+  return [`/api/spots/approve`, ...(params ? [params] : [])] as const;
+};
+
+export const getApproveBookingQueryOptions = <
+  TData = Awaited<ReturnType<typeof approveBooking>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: ApproveBookingParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof approveBooking>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getApproveBookingQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof approveBooking>>> = ({
+    signal,
+  }) => approveBooking(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof approveBooking>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ApproveBookingQueryResult = NonNullable<
+  Awaited<ReturnType<typeof approveBooking>>
+>;
+export type ApproveBookingQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Approve a booking via token link (owner clicks WhatsApp link)
+ */
+
+export function useApproveBooking<
+  TData = Awaited<ReturnType<typeof approveBooking>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params: ApproveBookingParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof approveBooking>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getApproveBookingQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Remove a parking spot listing

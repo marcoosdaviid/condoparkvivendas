@@ -1,6 +1,37 @@
-# Workspace
+# CondoPark — Brazilian Condo Parking Spot Sharing App
 
-## Overview
+## Project Goal
+
+**CondoPark** is a Brazilian Portuguese web app for condominium residents to share and find parking spots. Residents can list available spots (one-time or recurring), request interest via WhatsApp, and approve bookings.
+
+## Application Features
+
+### Authentication
+- Phone-based registration + login (no passwords)
+- OTP verification via SMS (in dev mode, OTP shown in toast)
+- Optional car plate registration (required to request spots)
+- `wantsToRequestSpot` toggle for requesters
+
+### Parking Spot Lifecycle: AVAILABLE → PENDING_CONFIRMATION → OCCUPIED → FINISHED
+- **One-time spots**: listed for a specific date
+- **Recurring spots**: listed for specific days of the week (e.g., Mon/Wed/Fri). Only shown on scheduled days. Auto-reset from FINISHED → AVAILABLE daily.
+- **WhatsApp approval flow**: when user expresses interest, backend generates a UUID approval token. Frontend builds a WhatsApp link to the owner with the approval URL. Owner clicks link → visits `/approve?spotId=X&token=Y` → spot auto-confirms.
+- **Manual confirmation**: owner can also confirm directly in the dashboard (fills in occupant name, apartment, plate, exit time)
+- **Vacate**: owner marks spot as vacated (recurring spots → AVAILABLE, one-time → FINISHED if past end time)
+
+### Dashboard
+- Owner spot card: shows status, type badge (Recorrente), occupant info, action buttons
+- Phone verification banner if phone not verified
+- Profile edit (update car plate + requestSpot preference) via avatar dropdown
+- Two tabs: "Vagas" (spots list) + "Pedidos" (spot requests)
+- **SpotCard**: "Falar com dono da vaga" button opens WhatsApp after expressing interest. Validates phoneVerified + carPlate before proceeding.
+
+### Spot Requests (Pedidos)
+- Residents can post requests for a specific date/time range (with optional reason)
+- Spot owners can offer their spot for a request
+- Matched requests show offered-by user's contact info
+
+## Workspace
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 

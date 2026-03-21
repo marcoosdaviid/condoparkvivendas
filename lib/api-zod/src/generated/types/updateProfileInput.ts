@@ -6,13 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface User {
-  id: number;
-  name: string;
-  apartment: string;
-  phone: string;
+export interface UpdateProfileInput {
   carPlate?: string | null;
-  wantsToRequestSpot: boolean;
-  phoneVerified: boolean;
-  createdAt: Date;
+  wantsToRequestSpot?: boolean;
 }

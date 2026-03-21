@@ -79,11 +79,98 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /users/send-otp:
+    post:
+      operationId: sendOtp
+      tags: [users]
+      summary: Send OTP code to phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOtpInput"
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendOtpResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/verify-otp:
+    post:
+      operationId: verifyOtp
+      tags: [users]
+      summary: Verify OTP code and mark phone as verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpInput"
+      responses:
+        "200":
+          description: Phone verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}:
+    patch:
+      operationId: updateProfile
+      tags: [users]
+      summary: Update user profile (car plate, preferences)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileInput"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /spots:
     get:
       operationId: getAvailableSpots
       tags: [spots]
-      summary: Get all parking spots for today
+      summary: Get all parking spots for today (one-time and recurring)
       responses:
         "200":
           description: List of spots today
@@ -97,7 +184,7 @@ paths:
     post:
       operationId: createSpot
       tags: [spots]
-      summary: Share a parking spot as available today
+      summary: Share a parking spot (one-time or recurring)
       requestBody:
         required: true
         content:
@@ -111,8 +198,50 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ParkingSpot"
+        "400":
+          description: Phone not verified or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: User already has a spot listed today
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /spots/approve:
+    get:
+      operationId: approveBooking
+      tags: [spots]
+      summary: Approve a booking via token link (owner clicks WhatsApp link)
+      parameters:
+        - name: spotId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Booking approved, spot now OCCUPIED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParkingSpot"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Spot not found
           content:
             application/json:
               schema:
@@ -162,11 +291,17 @@ paths:
               $ref: "#/components/schemas/ExpressInterestInput"
       responses:
         "200":
-          description: Status updated to PENDING_CONFIRMATION
+          description: Status updated to PENDING_CONFIRMATION with approval token
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ParkingSpot"
+        "400":
+          description: User must verify phone or add car plate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Spot not found
           content:
@@ -383,10 +518,17 @@ components:
           type: string
         phone:
           type: string
+        carPlate:
+          type: string
+          nullable: true
+        wantsToRequestSpot:
+          type: boolean
+        phoneVerified:
+          type: boolean
         createdAt:
           type: string
           format: date-time
-      required: [id, name, apartment, phone, createdAt]
+      required: [id, name, apartment, phone, wantsToRequestSpot, phoneVerified, createdAt]
 
     RegisterUserInput:
       type: object
@@ -397,6 +539,11 @@ components:
           type: string
         phone:
           type: string
+        carPlate:
+          type: string
+          nullable: true
+        wantsToRequestSpot:
+          type: boolean
       required: [name, apartment, phone]
 
     LoginInput:
@@ -405,6 +552,41 @@ components:
         phone:
           type: string
       required: [phone]
+
+    SendOtpInput:
+      type: object
+      properties:
+        phone:
+          type: string
+      required: [phone]
+
+    SendOtpResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        devOtp:
+          type: string
+          nullable: true
+      required: [message]
+
+    VerifyOtpInput:
+      type: object
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+      required: [phone, code]
+
+    UpdateProfileInput:
+      type: object
+      properties:
+        carPlate:
+          type: string
+          nullable: true
+        wantsToRequestSpot:
+          type: boolean
 
     ParkingSpot:
       type: object
@@ -419,12 +601,21 @@ components:
           type: string
         userPhone:
           type: string
+        spotType:
+          type: string
+          enum: [ONE_TIME, RECURRING]
+        daysOfWeek:
+          type: array
+          nullable: true
+          items:
+            type: string
         availableFrom:
           type: string
         availableUntil:
           type: string
         date:
           type: string
+          nullable: true
         status:
           type: string
           enum: [AVAILABLE, PENDING_CONFIRMATION, OCCUPIED, FINISHED]
@@ -438,6 +629,9 @@ components:
           type: string
           nullable: true
         interestedUserApartment:
+          type: string
+          nullable: true
+        approvalToken:
           type: string
           nullable: true
         occupantName:
@@ -461,9 +655,9 @@ components:
         - userName
         - userApartment
         - userPhone
+        - spotType
         - availableFrom
         - availableUntil
-        - date
         - status
         - createdAt
 
@@ -472,10 +666,21 @@ components:
       properties:
         userId:
           type: integer
+        spotType:
+          type: string
+          enum: [ONE_TIME, RECURRING]
+        daysOfWeek:
+          type: array
+          nullable: true
+          items:
+            type: string
         availableFrom:
           type: string
         availableUntil:
           type: string
+        date:
+          type: string
+          nullable: true
       required: [userId, availableFrom, availableUntil]
 
     ExpressInterestInput:

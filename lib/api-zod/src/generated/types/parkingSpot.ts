@@ -5,6 +5,7 @@
  * Condo Parking Spot Sharing API
  * OpenAPI spec version: 0.1.0
  */
+import type { ParkingSpotSpotType } from "./parkingSpotSpotType";
 import type { ParkingSpotStatus } from "./parkingSpotStatus";
 
 export interface ParkingSpot {
@@ -13,14 +14,17 @@ export interface ParkingSpot {
   userName: string;
   userApartment: string;
   userPhone: string;
+  spotType: ParkingSpotSpotType;
+  daysOfWeek?: string[] | null;
   availableFrom: string;
   availableUntil: string;
-  date: string;
+  date?: string | null;
   status: ParkingSpotStatus;
   interestedUserId?: number | null;
   interestedUserName?: string | null;
   interestedUserPhone?: string | null;
   interestedUserApartment?: string | null;
+  approvalToken?: string | null;
   occupantName?: string | null;
   occupantApartment?: string | null;
   carPlate?: string | null;

@@ -22,6 +22,9 @@ export interface User {
   name: string;
   apartment: string;
   phone: string;
+  carPlate?: string | null;
+  wantsToRequestSpot: boolean;
+  phoneVerified: boolean;
   createdAt: string;
 }
 
@@ -29,11 +32,40 @@ export interface RegisterUserInput {
   name: string;
   apartment: string;
   phone: string;
+  carPlate?: string | null;
+  wantsToRequestSpot?: boolean;
 }
 
 export interface LoginInput {
   phone: string;
 }
+
+export interface SendOtpInput {
+  phone: string;
+}
+
+export interface SendOtpResponse {
+  message: string;
+  devOtp?: string | null;
+}
+
+export interface VerifyOtpInput {
+  phone: string;
+  code: string;
+}
+
+export interface UpdateProfileInput {
+  carPlate?: string | null;
+  wantsToRequestSpot?: boolean;
+}
+
+export type ParkingSpotSpotType =
+  (typeof ParkingSpotSpotType)[keyof typeof ParkingSpotSpotType];
+
+export const ParkingSpotSpotType = {
+  ONE_TIME: "ONE_TIME",
+  RECURRING: "RECURRING",
+} as const;
 
 export type ParkingSpotStatus =
   (typeof ParkingSpotStatus)[keyof typeof ParkingSpotStatus];
@@ -51,14 +83,17 @@ export interface ParkingSpot {
   userName: string;
   userApartment: string;
   userPhone: string;
+  spotType: ParkingSpotSpotType;
+  daysOfWeek?: string[] | null;
   availableFrom: string;
   availableUntil: string;
-  date: string;
+  date?: string | null;
   status: ParkingSpotStatus;
   interestedUserId?: number | null;
   interestedUserName?: string | null;
   interestedUserPhone?: string | null;
   interestedUserApartment?: string | null;
+  approvalToken?: string | null;
   occupantName?: string | null;
   occupantApartment?: string | null;
   carPlate?: string | null;
@@ -66,10 +101,21 @@ export interface ParkingSpot {
   createdAt: string;
 }
 
+export type CreateSpotInputSpotType =
+  (typeof CreateSpotInputSpotType)[keyof typeof CreateSpotInputSpotType];
+
+export const CreateSpotInputSpotType = {
+  ONE_TIME: "ONE_TIME",
+  RECURRING: "RECURRING",
+} as const;
+
 export interface CreateSpotInput {
   userId: number;
+  spotType?: CreateSpotInputSpotType;
+  daysOfWeek?: string[] | null;
   availableFrom: string;
   availableUntil: string;
+  date?: string | null;
 }
 
 export interface ExpressInterestInput {
@@ -120,3 +166,8 @@ export interface CreateSpotRequestInput {
 export interface OfferSpotInput {
   offeredByUserId: number;
 }
+
+export type ApproveBookingParams = {
+  spotId: number;
+  token: string;
+};
