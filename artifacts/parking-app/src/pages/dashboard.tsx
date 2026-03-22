@@ -134,6 +134,7 @@ export default function Dashboard() {
 
   const mySpot: ParkingSpot | undefined = mySpotData ?? undefined;
   const otherSpots = spots?.filter((s) => s.userId !== user?.id) || [];
+  const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
   return (
@@ -233,6 +234,15 @@ export default function Dashboard() {
           {mySpot && (
             <motion.div key="owner-card" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
               <OwnerSpotCard spot={mySpot} parkingSpotNumber={user?.parkingSpotNumber} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* VAGA QUE ESTOU USANDO — CARD DO OCUPANTE */}
+        <AnimatePresence>
+          {myOccupiedSpot && (
+            <motion.div key="occupant-card" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+              <OccupantSpotCard spot={myOccupiedSpot} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -537,6 +547,54 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
             triggerLabel="Marcar como desocupada" triggerIcon={<CheckCircle2 className="w-4 h-4 mr-2" />} asInline />
         </div>
       )}
+    </Card>
+  );
+}
+
+// Card do ocupante — mostrado quando o usuário está usando a vaga de outra pessoa
+function OccupantSpotCard({ spot }: { spot: ParkingSpot }) {
+  return (
+    <Card className="rounded-3xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-5 space-y-3 shadow-inner overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+        </div>
+        <div>
+          <p className="font-bold text-green-800 dark:text-green-300 text-sm leading-tight">Você está usando esta vaga</p>
+          <p className="text-xs text-green-600 dark:text-green-500">Até às {spot.availableUntil}</p>
+        </div>
+      </div>
+
+      <div className="p-3 bg-white/60 dark:bg-slate-900/40 rounded-2xl border border-green-100 dark:border-green-800/50 space-y-1.5">
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dono da vaga</p>
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8 border border-primary/10">
+            <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+              {getInitials(spot.userName)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-semibold text-slate-900 dark:text-white text-sm leading-tight">{spot.userName}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Building2 className="w-3 h-3" /> Apto {spot.userApartment}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {spot.availableFrom} – {spot.availableUntil}</span>
+          {spot.carPlate && <span className="flex items-center gap-1"><Car className="w-3 h-3" /> {spot.carPlate}</span>}
+        </div>
+      </div>
+
+      <VacateButton
+        spot={spot}
+        triggerCls="border-green-400 bg-green-600 text-white hover:bg-green-700 w-full h-11"
+        triggerLabel="Desocupar vaga"
+        triggerIcon={<KeyRound className="w-4 h-4 mr-2" />}
+        asInline
+      />
     </Card>
   );
 }
@@ -957,9 +1015,27 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
         )}
 
         {spot.status === "OCCUPIED" && (
-          <div className="mt-3 flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
-            <Car className="w-4 h-4 text-red-600 dark:text-red-400" />
-            <span className="text-sm text-red-700 dark:text-red-300 font-medium">Ocupada no momento</span>
+          <div className="mt-4 space-y-2">
+            {isInterestedUser ? (
+              <>
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                  <span className="text-sm text-green-700 dark:text-green-300 font-medium">Você está usando esta vaga</span>
+                </div>
+                <VacateButton
+                  spot={spot}
+                  triggerCls="border-green-400 bg-green-600 text-white hover:bg-green-700 w-full h-10"
+                  triggerLabel="Desocupar vaga"
+                  triggerIcon={<KeyRound className="w-4 h-4 mr-2" />}
+                  asInline
+                />
+              </>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl">
+                <Car className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm text-red-700 dark:text-red-300 font-medium">Ocupada no momento</span>
+              </div>
+            )}
           </div>
         )}
       </div>
