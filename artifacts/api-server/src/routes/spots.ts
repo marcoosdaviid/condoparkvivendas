@@ -494,6 +494,13 @@ router.post("/spots/:id/interest", async (req, res): Promise<void> => {
     return;
   }
 
+  if (spot.status === "PENDING_CONFIRMATION" && spot.interestedUserId === body.data.interestedUserId) {
+    // Same user retrying — return existing token so they can reopen WhatsApp
+    const full = await selectFullSpot(params.data.id);
+    res.json(ExpressInterestResponse.parse(full));
+    return;
+  }
+
   if (spot.status !== "AVAILABLE") {
     res.status(409).json({ error: "Esta vaga não está mais disponível" });
     return;

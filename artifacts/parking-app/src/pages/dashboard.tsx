@@ -926,10 +926,33 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           </div>
         )}
 
-        {spot.status === "PENDING_CONFIRMATION" && !isInterestedUser && (
-          <div className="mt-3 flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
-            <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-            <span className="text-sm text-yellow-700 dark:text-yellow-300">Aguardando confirmação do dono</span>
+        {spot.status === "PENDING_CONFIRMATION" && (
+          <div className="mt-4 space-y-2">
+            {isInterestedUser ? (
+              <>
+                <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">Aguardando confirmação do dono</span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 rounded-2xl font-semibold text-sm gap-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/20"
+                  onClick={handleTalkToOwner}
+                  disabled={expressing}
+                >
+                  {expressing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <><MessageCircle className="w-4 h-4" /> Reenviar pelo WhatsApp</>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
+                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="text-sm text-yellow-700 dark:text-yellow-300">Aguardando confirmação do dono</span>
+              </div>
+            )}
           </div>
         )}
 
