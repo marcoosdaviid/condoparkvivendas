@@ -71,14 +71,12 @@ function PublicRoute({ component: Component }: { component: React.ComponentType 
 function AppRouter() {
   return (
     <Switch>
+      <Route path="/admin" component={AdminPage} />
       <Route path="/auth">
         <PublicRoute component={AuthPage} />
       </Route>
       <Route path="/approve">
         <ApprovePage />
-      </Route>
-      <Route path="/admin">
-        <AdminPage />
       </Route>
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
