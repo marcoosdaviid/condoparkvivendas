@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
@@ -827,6 +827,7 @@ function VacateButton({
 function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const pendingWindowRef = useRef<Window | null>(null);
 
   const isInterestedUser = spot.interestedUserId === currentUser.id;
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
@@ -845,11 +846,24 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
           const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
-          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+          const win = pendingWindowRef.current;
+          if (win && !win.closed) {
+            win.location.href = waUrl;
+          } else {
+            window.open(waUrl, "_blank");
+          }
+          pendingWindowRef.current = null;
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
-      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
+      onError: (err: any) => {
+        if (pendingWindowRef.current && !pendingWindowRef.current.closed) {
+          pendingWindowRef.current.close();
+          pendingWindowRef.current = null;
+        }
+        toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" });
+      },
     },
   });
 
@@ -858,6 +872,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
       toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
       return;
     }
+    pendingWindowRef.current = window.open("about:blank", "_blank");
     expressInterest({ id: spot.id, data: { interestedUserId: currentUser.id } });
   }
 
