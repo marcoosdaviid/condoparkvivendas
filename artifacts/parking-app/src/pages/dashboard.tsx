@@ -145,7 +145,7 @@ export default function Dashboard() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-md shadow-primary/20">
               <CarFront className="w-4 h-4 text-white" />
             </div>
-            <h1 className="font-display font-bold text-lg tracking-tight">CondoPark</h1>
+            <h1 className="font-display font-bold text-lg tracking-tight">CondoPark Vivendas</h1>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -843,7 +843,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
         if (token) {
           const base = import.meta.env.BASE_URL ?? "/";
           const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
-          const msg = `Oi! Solicitei sua vaga no CondoPark.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
+          const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
           window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });

@@ -52,7 +52,7 @@ export default function ApprovePage() {
             <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">Este link de aprovação está incompleto ou corrompido.</p>
           </div>
           <Button variant="outline" className="w-full rounded-xl h-12" onClick={() => setLocation("/")}>
-            Ir ao CondoPark
+            Ir ao CondoPark Vivendas
           </Button>
         </motion.div>
       );
@@ -81,7 +81,7 @@ export default function ApprovePage() {
             </p>
           </div>
           <Button variant="outline" className="w-full rounded-xl h-12" onClick={() => setLocation("/")}>
-            Ir ao CondoPark
+            Ir ao CondoPark Vivendas
           </Button>
         </motion.div>
       );
@@ -105,7 +105,7 @@ export default function ApprovePage() {
             )}
           </div>
           <Button className="w-full rounded-xl h-12" onClick={() => setLocation("/")}>
-            Ver no CondoPark
+            Ver no CondoPark Vivendas
           </Button>
         </motion.div>
       );
@@ -124,7 +124,7 @@ export default function ApprovePage() {
             </p>
           </div>
           <Button variant="outline" className="w-full rounded-xl h-12" onClick={() => setLocation("/")}>
-            Ver no CondoPark
+            Ver no CondoPark Vivendas
           </Button>
         </motion.div>
       );
@@ -196,7 +196,7 @@ export default function ApprovePage() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 mb-4">
             <CarFront className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">CondoPark</h1>
+          <h1 className="text-2xl font-display font-bold text-slate-900 dark:text-white">CondoPark Vivendas</h1>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 p-8">

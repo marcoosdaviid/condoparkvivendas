@@ -57,7 +57,7 @@ export default function AuthPage() {
   const { mutate: doRegister, isPending: isRegistering } = useRegisterUser({
     mutation: {
       onSuccess: (data) => {
-        toast({ title: "Bem-vindo(a) ao CondoPark!", description: "Conta criada com sucesso." });
+        toast({ title: "Bem-vindo(a) ao CondoPark Vivendas!", description: "Conta criada com sucesso." });
         login(data);
       },
       onError: (err: any) => {
@@ -99,7 +99,7 @@ export default function AuthPage() {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 mb-6">
             <CarFront className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">CondoPark</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">CondoPark Vivendas</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2">Compartilhe e encontre vagas no seu condomínio.</p>
         </div>
 

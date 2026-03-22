@@ -30,7 +30,7 @@ function FullScreenLoader() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center">
       <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
-      <p className="text-slate-500 font-medium">Carregando CondoPark...</p>
+      <p className="text-slate-500 font-medium">Carregando CondoPark Vivendas...</p>
     </div>
   );
 }
