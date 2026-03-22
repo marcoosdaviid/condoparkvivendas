@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
 import {
   RegisterUserBody,
@@ -30,12 +31,15 @@ router.post("/users/register", async (req, res): Promise<void> => {
     return;
   }
 
+  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+
   const [user] = await db
     .insert(usersTable)
     .values({
       name: parsed.data.name,
       apartment: parsed.data.apartment,
       phone: parsed.data.phone,
+      passwordHash,
       carPlate: parsed.data.carPlate ?? null,
       wantsToRequestSpot: parsed.data.wantsToRequestSpot ?? false,
       hasParkingSpot: parsed.data.hasParkingSpot ?? false,
@@ -62,6 +66,17 @@ router.post("/users/login", async (req, res): Promise<void> => {
 
   if (!user) {
     res.status(404).json({ error: "Telefone não encontrado. Cadastre-se primeiro." });
+    return;
+  }
+
+  if (!user.passwordHash) {
+    res.status(401).json({ error: "Conta sem senha configurada. Entre em contato com o suporte." });
+    return;
+  }
+
+  const passwordOk = await bcrypt.compare(parsed.data.password, user.passwordHash);
+  if (!passwordOk) {
+    res.status(401).json({ error: "Senha incorreta." });
     return;
   }
 

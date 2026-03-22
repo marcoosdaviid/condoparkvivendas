@@ -7,6 +7,7 @@ export const usersTable = pgTable("users", {
   name: text("name").notNull(),
   apartment: text("apartment").notNull(),
   phone: text("phone").notNull().unique(),
+  passwordHash: text("password_hash"),
   carPlate: text("car_plate"),
   wantsToRequestSpot: boolean("wants_to_request_spot").notNull().default(false),
   hasParkingSpot: boolean("has_parking_spot").notNull().default(false),

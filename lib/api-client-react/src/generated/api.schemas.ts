@@ -34,6 +34,7 @@ export interface RegisterUserInput {
   name: string;
   apartment: string;
   phone: string;
+  password: string;
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
   hasParkingSpot?: boolean;
@@ -42,6 +43,7 @@ export interface RegisterUserInput {
 
 export interface LoginInput {
   phone: string;
+  password: string;
 }
 
 export interface UpdateProfileInput {

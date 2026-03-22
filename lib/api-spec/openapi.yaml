@@ -574,6 +574,8 @@ components:
           type: string
         phone:
           type: string
+        password:
+          type: string
         carPlate:
           type: string
           nullable: true
@@ -584,14 +586,16 @@ components:
         parkingSpotNumber:
           type: string
           nullable: true
-      required: [name, apartment, phone]
+      required: [name, apartment, phone, password]
 
     LoginInput:
       type: object
       properties:
         phone:
           type: string
-      required: [phone]
+        password:
+          type: string
+      required: [phone, password]
 
     UpdateProfileInput:
       type: object

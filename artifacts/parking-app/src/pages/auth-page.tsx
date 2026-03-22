@@ -3,7 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { CarFront, Loader2, ArrowRight, Car, MapPin } from "lucide-react";
+import { CarFront, Loader2, ArrowRight, Car, MapPin, Eye, EyeOff } from "lucide-react";
 import {
   useRegisterUser,
   useLoginUser,
@@ -19,17 +19,50 @@ import { Switch } from "@/components/ui/switch";
 
 const loginSchema = z.object({
   phone: z.string().min(10, "Informe um número de telefone válido (mín. 10 dígitos)"),
+  password: z.string().min(1, "Informe sua senha"),
 });
 
 const registerSchema = z.object({
   name: z.string().min(2, "Nome é obrigatório"),
   apartment: z.string().min(1, "Número do apartamento é obrigatório"),
   phone: z.string().min(10, "Informe um número de telefone válido"),
+  phoneConfirm: z.string().min(10, "Confirme seu número de telefone"),
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+  passwordConfirm: z.string().min(1, "Confirme sua senha"),
   wantsToRequestSpot: z.boolean().optional(),
   carPlate: z.string().optional(),
   hasParkingSpot: z.boolean().optional(),
   parkingSpotNumber: z.string().optional(),
+}).refine((d) => d.phone === d.phoneConfirm, {
+  message: "Os números de telefone não coincidem",
+  path: ["phoneConfirm"],
+}).refine((d) => d.password === d.passwordConfirm, {
+  message: "As senhas não coincidem",
+  path: ["passwordConfirm"],
 });
+
+function PasswordInput({ id, placeholder, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { id: string; placeholder: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50 pr-11"
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const { login } = useAuth();
@@ -47,7 +80,7 @@ export default function AuthPage() {
       onError: (err: any) => {
         toast({
           title: "Falha no login",
-          description: err?.data?.error || "Telefone não encontrado.",
+          description: err?.data?.error || "Telefone ou senha incorretos.",
           variant: "destructive",
         });
       },
@@ -72,12 +105,16 @@ export default function AuthPage() {
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { phone: "" },
+    defaultValues: { phone: "", password: "" },
   });
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", apartment: "", phone: "", wantsToRequestSpot: false, carPlate: "", hasParkingSpot: false, parkingSpotNumber: "" },
+    defaultValues: {
+      name: "", apartment: "", phone: "", phoneConfirm: "",
+      password: "", passwordConfirm: "",
+      wantsToRequestSpot: false, carPlate: "", hasParkingSpot: false, parkingSpotNumber: "",
+    },
   });
 
   return (
@@ -110,6 +147,7 @@ export default function AuthPage() {
               <TabsTrigger value="register" className="rounded-lg text-sm font-semibold">Cadastrar</TabsTrigger>
             </TabsList>
 
+            {/* ─── LOGIN ─── */}
             <TabsContent value="login" className="mt-0">
               <form onSubmit={loginForm.handleSubmit((v) => doLogin({ data: v }))} className="space-y-5">
                 <div className="space-y-2">
@@ -124,6 +162,19 @@ export default function AuthPage() {
                     <p className="text-sm text-destructive font-medium">{loginForm.formState.errors.phone.message}</p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300">Senha</Label>
+                  <PasswordInput
+                    id="login-password"
+                    placeholder="Sua senha"
+                    {...loginForm.register("password")}
+                  />
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-destructive font-medium">{loginForm.formState.errors.password.message}</p>
+                  )}
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all"
@@ -136,6 +187,7 @@ export default function AuthPage() {
               </form>
             </TabsContent>
 
+            {/* ─── CADASTRO ─── */}
             <TabsContent value="register" className="mt-0">
               <form
                 onSubmit={registerForm.handleSubmit((v) =>
@@ -144,6 +196,7 @@ export default function AuthPage() {
                       name: v.name,
                       apartment: v.apartment,
                       phone: v.phone,
+                      password: v.password,
                       carPlate: v.wantsToRequestSpot && v.carPlate ? v.carPlate : undefined,
                       wantsToRequestSpot: v.wantsToRequestSpot,
                       hasParkingSpot: v.hasParkingSpot,
@@ -179,17 +232,58 @@ export default function AuthPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reg-phone" className="text-slate-700 dark:text-slate-300">Número de Telefone</Label>
-                  <Input
-                    id="reg-phone"
-                    placeholder="ex: 11 99999-0000"
-                    className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
-                    {...registerForm.register("phone")}
-                  />
-                  {registerForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive font-medium">{registerForm.formState.errors.phone.message}</p>
-                  )}
+                {/* Telefone (2x) */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-phone" className="text-slate-700 dark:text-slate-300">Número de Telefone</Label>
+                    <Input
+                      id="reg-phone"
+                      placeholder="ex: 11 99999-0000"
+                      className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
+                      {...registerForm.register("phone")}
+                    />
+                    {registerForm.formState.errors.phone && (
+                      <p className="text-sm text-destructive font-medium">{registerForm.formState.errors.phone.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-phone-confirm" className="text-slate-700 dark:text-slate-300">Confirmar Telefone</Label>
+                    <Input
+                      id="reg-phone-confirm"
+                      placeholder="Digite o telefone novamente"
+                      className="h-12 rounded-xl bg-white/50 dark:bg-slate-950/50"
+                      {...registerForm.register("phoneConfirm")}
+                    />
+                    {registerForm.formState.errors.phoneConfirm && (
+                      <p className="text-sm text-destructive font-medium">{registerForm.formState.errors.phoneConfirm.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Senha (2x) */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password" className="text-slate-700 dark:text-slate-300">Senha</Label>
+                    <PasswordInput
+                      id="reg-password"
+                      placeholder="Mínimo 6 caracteres"
+                      {...registerForm.register("password")}
+                    />
+                    {registerForm.formState.errors.password && (
+                      <p className="text-sm text-destructive font-medium">{registerForm.formState.errors.password.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password-confirm" className="text-slate-700 dark:text-slate-300">Confirmar Senha</Label>
+                    <PasswordInput
+                      id="reg-password-confirm"
+                      placeholder="Digite a senha novamente"
+                      {...registerForm.register("passwordConfirm")}
+                    />
+                    {registerForm.formState.errors.passwordConfirm && (
+                      <p className="text-sm text-destructive font-medium">{registerForm.formState.errors.passwordConfirm.message}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 space-y-3">

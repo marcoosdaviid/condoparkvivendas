@@ -21,6 +21,7 @@ export const RegisterUserBody = zod.object({
   name: zod.string(),
   apartment: zod.string(),
   phone: zod.string(),
+  password: zod.string(),
   carPlate: zod.string().nullish(),
   wantsToRequestSpot: zod.boolean().optional(),
   hasParkingSpot: zod.boolean().optional(),
@@ -32,6 +33,7 @@ export const RegisterUserBody = zod.object({
  */
 export const LoginUserBody = zod.object({
   phone: zod.string(),
+  password: zod.string(),
 });
 
 export const LoginUserResponse = zod.object({

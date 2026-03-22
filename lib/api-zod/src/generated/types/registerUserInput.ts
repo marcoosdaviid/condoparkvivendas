@@ -10,6 +10,7 @@ export interface RegisterUserInput {
   name: string;
   apartment: string;
   phone: string;
+  password: string;
   carPlate?: string | null;
   wantsToRequestSpot?: boolean;
   hasParkingSpot?: boolean;
