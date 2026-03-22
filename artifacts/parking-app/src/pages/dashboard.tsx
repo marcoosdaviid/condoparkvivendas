@@ -750,12 +750,12 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
         <Button size="lg" className="w-full h-14 rounded-2xl shadow-lg shadow-primary/25 font-semibold text-sm relative overflow-hidden group flex-col gap-0.5 px-3">
           <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out skew-x-12" />
           <Plus className="w-4 h-4 mb-0.5" />
-          <span className="leading-tight">Liberar minha vaga</span>
+          <span className="leading-tight">Anunciar minha vaga</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-display">Liberar Vaga</DialogTitle>
+          <DialogTitle className="text-xl font-display">Anunciar Vaga</DialogTitle>
           <DialogDescription>Defina quando sua vaga estará disponível.</DialogDescription>
         </DialogHeader>
 
