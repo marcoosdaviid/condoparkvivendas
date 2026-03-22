@@ -847,21 +847,24 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
           const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const isFirefox = navigator.userAgent.includes("Firefox") && !isMobile;
+          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
           if (isMobile) {
-            // On mobile: native app:// scheme — browser stays on page, WhatsApp opens directly
+            // Mobile (iOS/Android): open native app directly, page stays open
             window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
-            pendingWindowRef.current = null;
-          } else {
-            // On desktop: reuse the pre-opened blank window (bypasses Firefox popup blocker)
-            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+          } else if (isFirefox) {
+            // Firefox desktop only: navigate the pre-opened blank window
             const win = pendingWindowRef.current;
             if (win && !win.closed) {
               win.location.href = waUrl;
             } else {
               window.open(waUrl, "_blank");
             }
-            pendingWindowRef.current = null;
+          } else {
+            // Chrome, Safari, Edge: open directly — no about:blank needed
+            window.open(waUrl, "_blank");
           }
+          pendingWindowRef.current = null;
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
@@ -880,7 +883,11 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
       toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
       return;
     }
-    pendingWindowRef.current = window.open("about:blank", "_blank");
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isFirefox = navigator.userAgent.includes("Firefox") && !isMobile;
+    if (isFirefox) {
+      pendingWindowRef.current = window.open("about:blank", "_blank");
+    }
     expressInterest({ id: spot.id, data: { interestedUserId: currentUser.id } });
   }
 
