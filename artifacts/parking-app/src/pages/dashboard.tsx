@@ -845,7 +845,11 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
           const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
-          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+          const a = document.createElement("a");
+          a.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
