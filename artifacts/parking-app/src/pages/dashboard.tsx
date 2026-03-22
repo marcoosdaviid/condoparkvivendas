@@ -582,6 +582,11 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800 space-y-1">
           <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">Interessado</p>
           <p className="font-semibold text-slate-900 dark:text-slate-100">{spot.interestedUserName} · Apto {spot.interestedUserApartment}</p>
+          {spot.requestedDays && (spot.requestedDays as any).length > 0 && (
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              Solicitou usar: {(spot.requestedDays as any).map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label).join(", ")}
+            </p>
+          )}
           <a href={`tel:${spot.interestedUserPhone}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
             <Phone className="w-3.5 h-3.5" /> {spot.interestedUserPhone}
           </a>
@@ -595,6 +600,11 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800 space-y-1">
           <p className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider">Em uso</p>
           <p className="font-semibold text-slate-900 dark:text-slate-100">{spot.occupantName} · Apto {spot.occupantApartment}</p>
+          {spot.requestedDays && (spot.requestedDays as any).length > 0 && (
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              Dias ativos: {(spot.requestedDays as any).map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label).join(", ")}
+            </p>
+          )}
           <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
             <span className="flex items-center gap-1"><Car className="w-3.5 h-3.5" /> {spot.carPlate}</span>
             <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Saída: {spot.expectedExitTime}</span>
@@ -946,18 +956,17 @@ function VacateButton({
 }
 
 // ─── SpotCard ────────────────────────────────────────────────────────────────
-function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
+function RequestSpotDialog({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const isInterestedUser = spot.interestedUserId === currentUser.id;
-  const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
+  const todayDayOfWeek = () => {
+    const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    return DAYS[new Date().getDay()];
+  };
 
-  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
-    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
-    : null;
-
-  const { mutate: expressInterest, isPending: expressing } = useExpressInterest({
+  const { mutate, isPending: expressing } = useExpressInterest({
     mutation: {
       onSuccess: (data: any) => {
         invalidateSpots(queryClient);
@@ -980,13 +989,102 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
     },
   });
 
-  function handleTalkToOwner() {
-    if (!currentUser.carPlate) {
-      toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
-      return;
-    }
-    expressInterest({ id: spot.id, data: { interestedUserId: currentUser.id } });
-  }
+  const isRecurring = spot.spotType === "RECURRING";
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          className="w-full h-11 rounded-2xl font-semibold text-sm gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-500/20"
+        >
+          <MessageCircle className="w-4 h-4" /> Solicitar vaga
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md rounded-3xl p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display">Solicitar Vaga</DialogTitle>
+          <DialogDescription>
+            {isRecurring ? "Escolha os dias que você pretende usar esta vaga." : "Confirme o interesse nesta vaga pontual."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isRecurring && (
+          <div className="space-y-4 py-4">
+            <Label className="text-sm font-semibold">Dias disponíveis:</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {spot.daysOfWeek?.map((day: string) => {
+                const dayLabel = DAYS_OF_WEEK.find(d => d.key === day)?.label || day;
+                const isSelected = selectedDays.includes(day);
+                return (
+                  <Button
+                    key={day}
+                    variant={isSelected ? "default" : "outline"}
+                    className={`h-11 rounded-xl transition-all ${isSelected ? "bg-primary shadow-lg shadow-primary/20" : ""}`}
+                    onClick={() => {
+                      setSelectedDays(prev =>
+                        prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                      );
+                    }}
+                  >
+                    {dayLabel}
+                  </Button>
+                );
+              })}
+            </div>
+            {selectedDays.length === 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Selecione pelo menos um dia para continuar.</p>
+            )}
+          </div>
+        )}
+
+        {!isRecurring && (
+          <div className="py-6 flex flex-col items-center gap-3 text-center">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CarFront className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">Vaga pontual: {spot.date}</p>
+              <p className="text-sm text-slate-500">{spot.availableFrom} às {spot.availableUntil}</p>
+            </div>
+          </div>
+        )}
+
+        <Button
+          className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25"
+          disabled={expressing || (isRecurring && selectedDays.length === 0)}
+          onClick={() => {
+            if (!currentUser.carPlate) {
+              toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa.", variant: "destructive" });
+              return;
+            }
+            mutate({
+              id: spot.id,
+              data: {
+                interestedUserId: currentUser.id,
+                requestedDays: isRecurring ? selectedDays : null
+              } as any
+            });
+          }}
+        >
+          {expressing ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmar e avisar pelo WhatsApp"}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const isInterestedUser = spot.interestedUserId === currentUser.id;
+  const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
+
+  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
+    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
+    : null;
+
+  // Removido handleTalkToOwner para usar o Dialog
 
   return (
     <Card className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow">
@@ -1031,19 +1129,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
                 <span className="text-sm text-yellow-700 dark:text-yellow-300 font-medium">Aguardando aprovação</span>
               </div>
             ) : (
-              <Button
-                className="w-full h-11 rounded-2xl font-semibold text-sm gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-500/20"
-                onClick={handleTalkToOwner}
-                disabled={expressing}
-              >
-                {expressing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <MessageCircle className="w-4 h-4" /> Solicitar vaga
-                  </>
-                )}
-              </Button>
+              <RequestSpotDialog spot={spot} currentUser={currentUser} />
             )}
           </div>
         )}

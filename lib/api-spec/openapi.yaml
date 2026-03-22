@@ -807,6 +807,11 @@ components:
         expectedExitTime:
           type: string
           nullable: true
+        requestedDays:
+          type: array
+          nullable: true
+          items:
+            type: string
         createdAt:
           type: string
           format: date-time
@@ -849,6 +854,11 @@ components:
       properties:
         interestedUserId:
           type: integer
+        requestedDays:
+          type: array
+          nullable: true
+          items:
+            type: string
       required: [interestedUserId]
 
     ConfirmOccupationInput:

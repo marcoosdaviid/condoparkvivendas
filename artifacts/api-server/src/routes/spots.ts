@@ -52,6 +52,7 @@ async function selectFullSpot(id: number) {
       occupantApartment: parkingSpotsTable.occupantApartment,
       carPlate: parkingSpotsTable.carPlate,
       expectedExitTime: parkingSpotsTable.expectedExitTime,
+      requestedDays: parkingSpotsTable.requestedDays,
       createdAt: parkingSpotsTable.createdAt,
     })
     .from(parkingSpotsTable)
@@ -79,8 +80,60 @@ async function selectFullSpot(id: number) {
   return { ...row, interestedUserName, interestedUserPhone, interestedUserApartment };
 }
 
+// Global cleanup for expired spots
+async function cleanupExpiredSpots() {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+
+  // 1. Ocupação expirada (ONE_TIME)
+  await db
+    .update(parkingSpotsTable)
+    .set({
+      status: "AVAILABLE", // Ou FINISHED, mas AVAILABLE permite que o dono publique de novo se quiser reaproveitar
+      interestedUserId: null,
+      approvalToken: null,
+      occupantName: null,
+      occupantApartment: null,
+      carPlate: null,
+      expectedExitTime: null,
+      requestedDays: null,
+    })
+    .where(
+      and(
+        eq(parkingSpotsTable.status, "OCCUPIED"),
+        eq(parkingSpotsTable.spotType, "ONE_TIME"),
+        or(
+          sql`${parkingSpotsTable.date} < ${todayStr}`,
+          and(eq(parkingSpotsTable.date, todayStr), sql`${parkingSpotsTable.availableUntil} < ${currentTime}`)
+        )
+      )
+    );
+
+  // 2. Ocupação expirada (RECURRING) -> Volta para disponível no dia seguinte ou fim do horário
+  await db
+    .update(parkingSpotsTable)
+    .set({
+      status: "AVAILABLE",
+      interestedUserId: null,
+      occupantName: null,
+      occupantApartment: null,
+      carPlate: null,
+      expectedExitTime: null,
+      requestedDays: null,
+    })
+    .where(
+      and(
+        eq(parkingSpotsTable.status, "OCCUPIED"),
+        eq(parkingSpotsTable.spotType, "RECURRING"),
+        sql`${parkingSpotsTable.availableUntil} < ${currentTime}`
+      )
+    );
+}
+
 // GET /spots — spots for today (one-time + recurring)
 router.get("/spots", async (_req, res): Promise<void> => {
+  await cleanupExpiredSpots();
   const today = new Date().toISOString().slice(0, 10);
   const dow = todayDayOfWeek();
 
@@ -103,6 +156,7 @@ router.get("/spots", async (_req, res): Promise<void> => {
       occupantApartment: parkingSpotsTable.occupantApartment,
       carPlate: parkingSpotsTable.carPlate,
       expectedExitTime: parkingSpotsTable.expectedExitTime,
+      requestedDays: parkingSpotsTable.requestedDays,
       createdAt: parkingSpotsTable.createdAt,
     })
     .from(parkingSpotsTable)
@@ -142,6 +196,7 @@ router.get("/spots", async (_req, res): Promise<void> => {
           occupantApartment: null,
           carPlate: null,
           expectedExitTime: null,
+          requestedDays: null,
         })
         .where(eq(parkingSpotsTable.id, id));
     }
@@ -425,6 +480,7 @@ router.post("/spots/:id/decline", async (req, res): Promise<void> => {
       occupantApartment: null,
       carPlate: null,
       expectedExitTime: null,
+      requestedDays: null,
     })
     .where(eq(parkingSpotsTable.id, spotId));
 
@@ -513,6 +569,7 @@ router.post("/spots/:id/interest", async (req, res): Promise<void> => {
     .set({
       status: "PENDING_CONFIRMATION",
       interestedUserId: body.data.interestedUserId,
+      requestedDays: (body.data as any).requestedDays || null,
       approvalToken,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
@@ -609,6 +666,7 @@ router.post("/spots/:id/vacate", async (req, res): Promise<void> => {
       occupantApartment: null,
       carPlate: null,
       expectedExitTime: null,
+      requestedDays: null,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
 

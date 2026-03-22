@@ -18,6 +18,7 @@ export const parkingSpotsTable = pgTable("parking_spots", {
   occupantApartment: text("occupant_apartment"),
   carPlate: text("car_plate"),
   expectedExitTime: text("expected_exit_time"),
+  requestedDays: text("requested_days").array(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
