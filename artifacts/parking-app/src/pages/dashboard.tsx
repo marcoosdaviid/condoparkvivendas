@@ -846,14 +846,22 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
           const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
-          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-          const win = pendingWindowRef.current;
-          if (win && !win.closed) {
-            win.location.href = waUrl;
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (isMobile) {
+            // On mobile: native app:// scheme — browser stays on page, WhatsApp opens directly
+            window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+            pendingWindowRef.current = null;
           } else {
-            window.open(waUrl, "_blank");
+            // On desktop: reuse the pre-opened blank window (bypasses Firefox popup blocker)
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            const win = pendingWindowRef.current;
+            if (win && !win.closed) {
+              win.location.href = waUrl;
+            } else {
+              window.open(waUrl, "_blank");
+            }
+            pendingWindowRef.current = null;
           }
-          pendingWindowRef.current = null;
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
