@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
@@ -827,7 +827,6 @@ function VacateButton({
 function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const pendingWindowRef = useRef<Window | null>(null);
 
   const isInterestedUser = spot.interestedUserId === currentUser.id;
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
@@ -846,35 +845,12 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
           const msg = `Oi! Solicitei sua vaga no CondoPark Vivendas.\nPara aprovar, confirme no link abaixo:\n${approvalUrl}`;
           const phone = (data.userPhone ?? "").replace(/\D/g, "");
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          const isFirefox = navigator.userAgent.includes("Firefox") && !isMobile;
-          const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-          if (isMobile) {
-            // Mobile (iOS/Android): open native app directly, page stays open
-            window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
-          } else if (isFirefox) {
-            // Firefox desktop only: navigate the pre-opened blank window
-            const win = pendingWindowRef.current;
-            if (win && !win.closed) {
-              win.location.href = waUrl;
-            } else {
-              window.open(waUrl, "_blank");
-            }
-          } else {
-            // Chrome, Safari, Edge: open directly — no about:blank needed
-            window.open(waUrl, "_blank");
-          }
-          pendingWindowRef.current = null;
+          window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
           toast({ title: "Solicitação enviada!", description: "Continue pelo WhatsApp para confirmar." });
         }
       },
-      onError: (err: any) => {
-        if (pendingWindowRef.current && !pendingWindowRef.current.closed) {
-          pendingWindowRef.current.close();
-          pendingWindowRef.current = null;
-        }
-        toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" });
-      },
+      onError: (err: any) =>
+        toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
 
@@ -882,11 +858,6 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
     if (!currentUser.carPlate) {
       toast({ title: "Cadastre sua placa", description: "Acesse 'Editar perfil' e cadastre sua placa para solicitar vagas.", variant: "destructive" });
       return;
-    }
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isFirefox = navigator.userAgent.includes("Firefox") && !isMobile;
-    if (isFirefox) {
-      pendingWindowRef.current = window.open("about:blank", "_blank");
     }
     expressInterest({ id: spot.id, data: { interestedUserId: currentUser.id } });
   }
