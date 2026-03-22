@@ -812,7 +812,7 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
           </div>
 
           <Button type="submit" className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25" disabled={isPending}>
-            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar Anúncio"}
+            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publicar minha vaga"}
           </Button>
         </form>
       </DialogContent>
