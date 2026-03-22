@@ -82,6 +82,11 @@ async function selectFullSpot(id: number) {
 
 // Global cleanup for expired spots
 async function cleanupExpiredSpots() {
+  // Hotpatch: ensure column exists
+  try {
+    await db.execute(sql`ALTER TABLE parking_spots ADD COLUMN IF NOT EXISTS requested_days text[]`);
+  } catch (err) { }
+
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
