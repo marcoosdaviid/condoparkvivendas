@@ -164,7 +164,24 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300">Senha</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password" className="text-slate-700 dark:text-slate-300">Senha</Label>
+                    <a
+                      href={(() => {
+                        const phone = "5548996818495";
+                        const text = "Olá, sou o morador [NOME] do apartamento [NÚMERO] e preciso resetar minha senha no CondoPark Vivendas.";
+                        const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+                        return isMobile
+                          ? `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`
+                          : `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+                      })()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Esqueci minha senha
+                    </a>
+                  </div>
                   <PasswordInput
                     id="login-password"
                     placeholder="Sua senha"
