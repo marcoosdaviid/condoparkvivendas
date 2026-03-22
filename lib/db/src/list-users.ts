@@ -1,16 +1,16 @@
 import { db, usersTable } from "./index";
 
-async function listUsers() {
+async function resetUsers() {
     try {
-        const users = await db.select().from(usersTable);
-        console.log("=== USERS IN DATABASE ===");
-        console.log(JSON.stringify(users, null, 2));
-        console.log("==========================");
+        await db.delete(usersTable);
+        console.log("=== DATABASE RESET SUCCESSFUL ===");
+        console.log("All users have been removed.");
+        console.log("=================================");
     } catch (err) {
-        console.error("Error listing users:", err);
+        console.error("Error resetting users:", err);
     } finally {
         process.exit(0);
     }
 }
 
-listUsers();
+resetUsers();
