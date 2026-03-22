@@ -123,4 +123,61 @@ router.patch("/users/:id", async (req, res): Promise<void> => {
   res.json(UpdateProfileResponse.parse(updated));
 });
 
+// GET /users — list all users (Admin)
+router.get("/users", async (_req, res): Promise<void> => {
+  const allUsers = await db.select().from(usersTable);
+  res.json(allUsers);
+});
+
+// POST /users/admin-login
+router.post("/users/admin-login", async (req, res): Promise<void> => {
+  const { username, password } = req.body;
+  if (username === "mdbestmd" && password === "Pck6486@.asd") {
+    // Return a mock admin user or just a success
+    // The OpenAPI spec expects a User object, so let's return a dummy admin
+    res.json({
+      id: 0,
+      name: "Administrador",
+      phone: "00000000000",
+      apartment: "ADM",
+      wantsToRequestSpot: false,
+      hasParkingSpot: false,
+      phoneVerified: true,
+      createdAt: new Date().toISOString(),
+    });
+  } else {
+    res.status(401).json({ error: "Credenciais administrativas inválidas" });
+  }
+});
+
+// DELETE /users/:id (Admin)
+router.delete("/users/:id", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const [deleted] = await db.delete(usersTable).where(eq(usersTable.id, id)).returning();
+  if (!deleted) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+  res.json({ message: "Usuário removido com sucesso" });
+});
+
+// POST /users/:id/reset-password (Admin)
+router.post("/users/:id/reset-password", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const defaultPassword = "password123"; // Updated to be consistent with common defaults or user preference
+  const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+  const [updated] = await db
+    .update(usersTable)
+    .set({ passwordHash })
+    .where(eq(usersTable.id, id))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+  res.json({ message: `Senha resetada com sucesso para: ${defaultPassword}` });
+});
+
 export default router;

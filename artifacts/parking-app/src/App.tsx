@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth-page";
 import ApprovePage from "@/pages/approve";
+import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -75,6 +76,9 @@ function AppRouter() {
       </Route>
       <Route path="/approve">
         <ApprovePage />
+      </Route>
+      <Route path="/admin">
+        <AdminPage />
       </Route>
       <Route path="/">
         <ProtectedRoute component={Dashboard} />
