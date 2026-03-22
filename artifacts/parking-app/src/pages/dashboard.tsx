@@ -20,6 +20,7 @@ import {
   useRemoveSpot,
   useExpressInterest,
   useConfirmOccupation,
+  useDeclineApproval,
   useVacateSpot,
   useGetSpotRequests,
   useCreateSpotRequest,
@@ -768,75 +769,84 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
 function ConfirmOccupationDialog({
   spot, triggerCls, triggerLabel, triggerIcon, asInline,
 }: { spot: ParkingSpot; triggerCls: string; triggerLabel: string; triggerIcon: React.ReactNode; asInline?: boolean }) {
-  const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const form = useForm<z.infer<typeof confirmSchema>>({
-    resolver: zodResolver(confirmSchema),
-    defaultValues: {
-      occupantName: spot.interestedUserName ?? "",
-      occupantApartment: spot.interestedUserApartment ?? "",
-      carPlate: "",
-      expectedExitTime: spot.availableUntil,
-    },
-  });
-  const { mutate, isPending } = useConfirmOccupation({
+  const { mutate: confirmMutate, isPending: confirming } = useConfirmOccupation({
     mutation: {
       onSuccess: () => {
         invalidateSpots(queryClient);
-        setOpen(false);
         toast({ title: "Uso confirmado!", description: "A vaga está agora ocupada." });
       },
       onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
   });
-  const trigger = (
-    <Button variant={asInline ? "default" : "outline"} size="lg"
-      className={asInline
-        ? `rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`
-        : `w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${triggerCls}`
-      }>
-      {triggerIcon}
-      <span className="leading-tight">{triggerLabel}</span>
-    </Button>
-  );
+  const { mutate: declineMutate, isPending: declining } = useDeclineApproval({
+    mutation: {
+      onSuccess: () => {
+        invalidateSpots(queryClient);
+        toast({ title: "Solicitação recusada", description: "A vaga voltou a estar disponível." });
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
+    },
+  });
+
+  const handleConfirm = () => {
+    const data = {
+      occupantName: spot.interestedUserName ?? "",
+      occupantApartment: spot.interestedUserApartment ?? "",
+      carPlate: spot.carPlate ?? "",
+      expectedExitTime: spot.availableUntil,
+    };
+    confirmMutate({ id: spot.id, data });
+  };
+
+  const handleDecline = () => {
+    declineMutate({ id: spot.id, data: { token: spot.approvalToken ?? "" } });
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-3xl p-6">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-display">Confirmar Uso da Vaga</DialogTitle>
-          <DialogDescription>Preencha os dados de quem vai usar a vaga.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit((v) => mutate({ id: spot.id, data: v }))} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Nome do usuário</Label>
-            <Input className="h-12 rounded-xl" placeholder="Nome completo" {...form.register("occupantName")} />
-            {form.formState.errors.occupantName && <p className="text-xs text-destructive">{form.formState.errors.occupantName.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Apartamento</Label>
-            <Input className="h-12 rounded-xl" placeholder="Apto 4B" {...form.register("occupantApartment")} />
-            {form.formState.errors.occupantApartment && <p className="text-xs text-destructive">{form.formState.errors.occupantApartment.message}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Placa do carro</Label>
-              <Input className="h-12 rounded-xl uppercase" placeholder="ABC1D23" {...form.register("carPlate")} />
-              {form.formState.errors.carPlate && <p className="text-xs text-destructive">{form.formState.errors.carPlate.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Previsão de saída</Label>
-              <Input type="time" className="h-12 rounded-xl" {...form.register("expectedExitTime")} />
-              {form.formState.errors.expectedExitTime && <p className="text-xs text-destructive">{form.formState.errors.expectedExitTime.message}</p>}
-            </div>
-          </div>
-          <Button type="submit" className="w-full h-12 rounded-xl shadow-lg shadow-primary/25" disabled={isPending}>
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Uso"}
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant={asInline ? "default" : "outline"} size="lg"
+          className={asInline
+            ? `rounded-2xl font-semibold text-sm flex items-center justify-center ${triggerCls}`
+            : `w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${triggerCls}`
+          }>
+          {triggerIcon}
+          <span className="leading-tight">{triggerLabel}</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="rounded-3xl max-w-sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-xl font-display">Permitir uso da vaga para</AlertDialogTitle>
+          <AlertDialogDescription className="text-lg font-semibold text-primary pt-2">
+            {spot.interestedUserName}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-3 space-y-2 my-2">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">{spot.interestedUserName}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <Building2 className="w-3 h-3" /> Apto {spot.interestedUserApartment}
+          </p>
+        </div>
+        <AlertDialogFooter className="grid grid-cols-2 gap-2">
+          <AlertDialogCancel 
+            onClick={handleDecline}
+            disabled={declining || confirming}
+            className="rounded-2xl h-11 font-semibold text-sm border-slate-300 dark:border-slate-600"
+          >
+            {declining ? <Loader2 className="w-4 h-4 animate-spin" /> : "Não permitir"}
+          </AlertDialogCancel>
+          <Button 
+            onClick={handleConfirm}
+            disabled={confirming || declining}
+            className="rounded-2xl h-11 font-semibold text-sm bg-green-600 hover:bg-green-700 text-white"
+          >
+            {confirming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Permitir uso"}
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
