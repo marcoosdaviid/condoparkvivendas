@@ -27,6 +27,7 @@ import {
   useOfferSpotForRequest,
   useDeleteSpotRequest,
   useUpdateProfile,
+  useChangePassword,
   getGetAvailableSpotsQueryKey,
   getGetMySpotQueryKey,
   getGetSpotRequestsQueryKey,
@@ -91,6 +92,14 @@ const profileSchema = z.object({
   hasParkingSpot: z.boolean().optional(),
   parkingSpotNumber: z.string().optional(),
 });
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+  newPassword: z.string().min(6, "A nova senha deve ter pelo menos 6 caracteres"),
+  confirmPassword: z.string().min(1, "Confirme a nova senha"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const getInitials = (name: string) =>
@@ -109,10 +118,10 @@ const DAYS_OF_WEEK = [
 ];
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  AVAILABLE:            { label: "Disponível",           color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
-  PENDING_CONFIRMATION: { label: "Aguard. confirmação",  color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
-  OCCUPIED:             { label: "Ocupada",              color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
-  FINISHED:             { label: "Encerrada",            color: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
+  AVAILABLE: { label: "Disponível", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  PENDING_CONFIRMATION: { label: "Aguard. confirmação", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
+  OCCUPIED: { label: "Ocupada", color: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" },
+  FINISHED: { label: "Encerrada", color: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" },
 };
 
 const invalidateSpots = (qc: ReturnType<typeof useQueryClient>) => {
@@ -415,6 +424,10 @@ function ProfileEditTrigger({ userId, currentCarPlate, currentWants, currentHasS
               </div>
             </div>
 
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <ChangePasswordDialog userId={userId} />
+            </div>
+
             <Button type="submit" className="w-full h-12 rounded-xl" disabled={isPending}>
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
             </Button>
@@ -422,6 +435,84 @@ function ProfileEditTrigger({ userId, currentCarPlate, currentWants, currentHasS
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function ChangePasswordDialog({ userId }: { userId: number }) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+
+  const { mutate, isPending } = useChangePassword({
+    mutation: {
+      onSuccess: () => {
+        setOpen(false);
+        toast({ title: "Senha alterada com sucesso!" });
+        form.reset();
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Erro ao alterar senha",
+          description: err?.data?.error || "Verifique sua senha atual.",
+          variant: "destructive"
+        });
+      },
+    },
+  });
+
+  const form = useForm<z.infer<typeof changePasswordSchema>>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" className="w-full justify-start text-primary h-10 px-3 hover:bg-primary/5 rounded-xl gap-2 font-medium">
+          <KeyRound className="w-4 h-4" /> Alterar Senha de Acesso
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm rounded-3xl p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-display">Segurança</DialogTitle>
+          <DialogDescription>Altere sua senha de acesso para maior segurança.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={form.handleSubmit((v) =>
+            mutate({
+              id: userId,
+              data: {
+                currentPassword: v.currentPassword,
+                newPassword: v.newPassword,
+              },
+            })
+          )}
+          className="space-y-4 mt-4"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="current-pw">Senha Atual</Label>
+            <Input id="current-pw" type="password" placeholder="••••••" className="h-11 rounded-xl" {...form.register("currentPassword")} />
+            {form.formState.errors.currentPassword && <p className="text-xs text-destructive">{form.formState.errors.currentPassword.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-pw">Nova Senha</Label>
+            <Input id="new-pw" type="password" placeholder="Mínimo 6 caracteres" className="h-11 rounded-xl" {...form.register("newPassword")} />
+            {form.formState.errors.newPassword && <p className="text-xs text-destructive">{form.formState.errors.newPassword.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-pw">Confirmar Nova Senha</Label>
+            <Input id="confirm-pw" type="password" placeholder="Repita a nova senha" className="h-11 rounded-xl" {...form.register("confirmPassword")} />
+            {form.formState.errors.confirmPassword && <p className="text-xs text-destructive">{form.formState.errors.confirmPassword.message}</p>}
+          </div>
+          <Button type="submit" className="w-full h-12 rounded-xl mt-2" disabled={isPending}>
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Mudança"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -439,10 +530,10 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 // Botão rápido do dono
 function MySpotQuickButton({ spot, userId }: { spot: ParkingSpot; userId: number }) {
   const statusConfig = {
-    AVAILABLE:            { label: "Minha vaga ativa",   icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
-    PENDING_CONFIRMATION: { label: "Confirmar uso",      icon: <UserCheck className="w-4 h-4 mb-0.5" />,    cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
-    OCCUPIED:             { label: "Desocupar vaga",     icon: <KeyRound className="w-4 h-4 mb-0.5" />,     cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
-    FINISHED:             { label: "Encerrada",          icon: <CircleCheck className="w-4 h-4 mb-0.5" />,  cls: "border-slate-200 bg-slate-50 text-slate-500" },
+    AVAILABLE: { label: "Minha vaga ativa", icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
+    PENDING_CONFIRMATION: { label: "Confirmar uso", icon: <UserCheck className="w-4 h-4 mb-0.5" />, cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
+    OCCUPIED: { label: "Desocupar vaga", icon: <KeyRound className="w-4 h-4 mb-0.5" />, cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
+    FINISHED: { label: "Encerrada", icon: <CircleCheck className="w-4 h-4 mb-0.5" />, cls: "border-slate-200 bg-slate-50 text-slate-500" },
   }[spot.status] ?? { label: spot.status, icon: null, cls: "" };
 
   if (spot.status === "PENDING_CONFIRMATION") {
@@ -678,11 +769,10 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
                   key={type}
                   type="button"
                   onClick={() => form.setValue("spotType", type, { shouldValidate: true })}
-                  className={`p-3 rounded-2xl border-2 text-sm font-semibold transition-all text-left ${
-                    isSelected
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
-                  }`}
+                  className={`p-3 rounded-2xl border-2 text-sm font-semibold transition-all text-left ${isSelected
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
+                    }`}
                 >
                   {type === "ONE_TIME" ? (
                     <><CalendarDays className="w-4 h-4 mb-1" /><br />Pontual</>
@@ -708,11 +798,10 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
                           key={d.key}
                           type="button"
                           onClick={() => toggleDay(d.key)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all ${
-                            active
-                              ? "bg-primary text-white border-primary"
-                              : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
-                          }`}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all ${active
+                            ? "bg-primary text-white border-primary"
+                            : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/40"
+                            }`}
                         >
                           {d.label}
                         </button>
@@ -830,14 +919,14 @@ function ConfirmOccupationDialog({
           </p>
         </div>
         <AlertDialogFooter className="grid grid-cols-2 gap-2">
-          <AlertDialogCancel 
+          <AlertDialogCancel
             onClick={handleDecline}
             disabled={declining || confirming}
             className="rounded-2xl h-11 font-semibold text-sm border-slate-300 dark:border-slate-600"
           >
             {declining ? <Loader2 className="w-4 h-4 animate-spin" /> : "Não permitir"}
           </AlertDialogCancel>
-          <Button 
+          <Button
             onClick={handleConfirm}
             disabled={confirming || declining}
             className="rounded-2xl h-11 font-semibold text-sm bg-green-600 hover:bg-green-700 text-white"
@@ -1070,11 +1159,10 @@ function ActiveRequestButton({ request }: { request: SpotRequest }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="lg" className={`w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${
-          isMatched
-            ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400"
-            : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
-        }`}>
+        <Button variant="outline" size="lg" className={`w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${isMatched
+          ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400"
+          : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+          }`}>
           <HandHelping className="w-4 h-4 mb-0.5" />
           <span className="leading-tight">{isMatched ? "Vaga encontrada!" : "Pedido ativo"}</span>
         </Button>
@@ -1180,9 +1268,8 @@ function RequestCard({ request, currentUserId }: { request: SpotRequest; current
   });
 
   return (
-    <Card className={`rounded-3xl overflow-hidden border bg-white dark:bg-slate-900 shadow-sm ${
-      isMatched ? "border-green-200 dark:border-green-800" : "border-slate-200/80 dark:border-slate-800"
-    }`}>
+    <Card className={`rounded-3xl overflow-hidden border bg-white dark:bg-slate-900 shadow-sm ${isMatched ? "border-green-200 dark:border-green-800" : "border-slate-200/80 dark:border-slate-800"
+      }`}>
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">

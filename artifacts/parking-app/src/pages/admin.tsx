@@ -52,7 +52,7 @@ export default function AdminPage() {
         name: "",
         phone: "",
         apartment: "",
-        password: "password123",
+        password: "123456",
         parkingSpotNumber: "",
         hasParkingSpot: false
     });
@@ -123,7 +123,7 @@ export default function AdminPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
             setIsAddUserOpen(false);
-            setNewUser({ name: "", phone: "", apartment: "", password: "password123", parkingSpotNumber: "", hasParkingSpot: false });
+            setNewUser({ name: "", phone: "", apartment: "", password: "123456", parkingSpotNumber: "", hasParkingSpot: false });
             toast({ title: "Usuário cadastrado com sucesso" });
         },
         onError: (err: Error) => {
@@ -242,7 +242,7 @@ export default function AdminPage() {
                                 <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
                                     <p className="text-xs text-slate-500 leading-relaxed font-medium">
                                         <AlertCircle className="w-3 h-3 inline mr-1 text-primary" />
-                                        A senha padrão inicial será: <span className="text-slate-900 dark:text-slate-200 font-bold">password123</span>.
+                                        A senha padrão inicial será: <span className="text-slate-900 dark:text-slate-200 font-bold">123456</span>.
                                         Recomenda-se que o usuário altere a senha no primeiro acesso.
                                     </p>
                                 </div>

@@ -77,6 +77,22 @@ export const UpdateProfileResponse = zod.object({
 });
 
 /**
+ * @summary Change user password
+ */
+export const ChangePasswordParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ChangePasswordBody = zod.object({
+  currentPassword: zod.string(),
+  newPassword: zod.string(),
+});
+
+export const ChangePasswordResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Get all parking spots for today (one-time and recurring)
  */
 export const GetAvailableSpotsResponseItem = zod.object({

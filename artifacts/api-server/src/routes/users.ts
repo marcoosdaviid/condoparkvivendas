@@ -9,6 +9,9 @@ import {
   UpdateProfileParams,
   UpdateProfileBody,
   UpdateProfileResponse,
+  ChangePasswordParams,
+  ChangePasswordBody,
+  ChangePasswordResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -164,7 +167,7 @@ router.delete("/users/:id", async (req, res): Promise<void> => {
 // POST /users/:id/reset-password (Admin)
 router.post("/users/:id/reset-password", async (req, res): Promise<void> => {
   const id = Number(req.params.id);
-  const defaultPassword = "password123"; // Updated to be consistent with common defaults or user preference
+  const defaultPassword = "123456"; // Updated to be consistent with common defaults or user preference
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
   const [updated] = await db
@@ -178,6 +181,47 @@ router.post("/users/:id/reset-password", async (req, res): Promise<void> => {
     return;
   }
   res.json({ message: `Senha resetada com sucesso para: ${defaultPassword}` });
+});
+
+
+// POST /users/:id/change-password
+router.post("/users/:id/change-password", async (req, res): Promise<void> => {
+  const params = ChangePasswordParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const body = ChangePasswordBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, params.data.id))
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  const passwordOk = await bcrypt.compare(body.data.currentPassword, user.passwordHash!);
+  if (!passwordOk) {
+    res.status(401).json({ error: "Senha atual incorreta." });
+    return;
+  }
+
+  const newPasswordHash = await bcrypt.hash(body.data.newPassword, 10);
+  await db
+    .update(usersTable)
+    .set({ passwordHash: newPasswordHash })
+    .where(eq(usersTable.id, params.data.id));
+
+  res.json({ message: "Senha alterada com sucesso!" });
 });
 
 export default router;

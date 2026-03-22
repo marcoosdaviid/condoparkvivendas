@@ -178,3 +178,7 @@ export type ConfirmApprovalBody = {
 export type DeclineApprovalBody = {
   token: string;
 };
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
