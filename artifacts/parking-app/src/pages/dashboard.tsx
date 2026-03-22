@@ -206,7 +206,7 @@ export default function Dashboard() {
         </div>
 
         {/* BOTÕES DE AÇÃO RÁPIDA */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="w-full">
           <AnimatePresence mode="popLayout">
             {mySpotLoading ? (
               <Skeleton className="h-14 rounded-2xl" />
@@ -220,20 +220,6 @@ export default function Dashboard() {
                   userId={user!.id}
                   parkingSpotNumber={user?.parkingSpotNumber}
                 />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="popLayout">
-            {requestsLoading ? (
-              <Skeleton className="h-14 rounded-2xl" />
-            ) : myRequest ? (
-              <motion.div key="my-req-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <ActiveRequestButton request={myRequest} />
-              </motion.div>
-            ) : (
-              <motion.div key="create-req-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <CreateRequestDialog userId={user!.id} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -257,18 +243,13 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
 
-        {/* ABAS: VAGAS / PEDIDOS */}
-        <Tabs defaultValue="spots" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 rounded-xl h-11 bg-slate-100/80 dark:bg-slate-800/80 p-1">
-            <TabsTrigger value="spots" className="rounded-lg text-sm font-semibold">
-              <MapPin className="w-4 h-4 mr-1.5" /> Vagas
-            </TabsTrigger>
-            <TabsTrigger value="requests" className="rounded-lg text-sm font-semibold">
-              <HandHelping className="w-4 h-4 mr-1.5" /> Pedidos
-            </TabsTrigger>
-          </TabsList>
+        <div className="w-full">
+          <div className="flex items-center gap-2 mb-4 px-1">
+            <MapPin className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Vagas Disponíveis</h3>
+          </div>
 
-          <TabsContent value="spots" className="mt-4 space-y-4">
+          <div className="space-y-4">
             {spotsLoading ? (
               <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-2xl" />)}</div>
             ) : otherSpots.length === 0 ? (
@@ -282,24 +263,8 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="requests" className="mt-4 space-y-4">
-            {requestsLoading ? (
-              <div className="space-y-4">{[1, 2].map((i) => <Skeleton key={i} className="h-40 w-full rounded-2xl" />)}</div>
-            ) : !requests || requests.length === 0 ? (
-              <EmptyState icon={<HandHelping className="w-8 h-8 text-slate-400" />} title="Nenhum pedido ainda" desc="Nenhum morador solicitou vaga por enquanto." />
-            ) : (
-              <div className="space-y-4">
-                {requests.map((req, i) => (
-                  <motion.div key={req.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                    <RequestCard request={req} currentUserId={user!.id} />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </main>
     </div>
   );
