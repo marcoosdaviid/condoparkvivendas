@@ -587,6 +587,11 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
               Solicitou usar: {spot.requestedDays.map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label || d).join(", ")}
             </p>
           )}
+          {(spot as any).requestedFrom && (spot as any).requestedUntil && (
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> No horário: {(spot as any).requestedFrom} às {(spot as any).requestedUntil}
+            </p>
+          )}
           <a href={`tel:${spot.interestedUserPhone}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
             <Phone className="w-3.5 h-3.5" /> {spot.interestedUserPhone}
           </a>
@@ -630,7 +635,7 @@ function OccupantSpotCard({ spot }: { spot: ParkingSpot }) {
         </div>
         <div>
           <p className="font-bold text-green-800 dark:text-green-300 text-sm leading-tight">Você está usando esta vaga</p>
-          <p className="text-xs text-green-600 dark:text-green-500">Até às {spot.availableUntil}</p>
+          <p className="text-xs text-green-600 dark:text-green-500">Sua previsão de saída: {spot.expectedExitTime || spot.availableUntil}</p>
         </div>
       </div>
 
@@ -887,11 +892,22 @@ function ConfirmOccupationDialog({
             {spot.interestedUserName}?
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-3 space-y-2 my-2">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">{spot.interestedUserName}</p>
+        <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 space-y-3 my-2 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{spot.interestedUserName}</p>
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Interessado</span>
+          </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
             <Building2 className="w-3 h-3" /> Apto {spot.interestedUserApartment}
           </p>
+          {((spot as any).requestedFrom || (spot as any).requestedUntil) && (
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Horário Solicitado</p>
+              <p className="text-sm font-bold text-primary flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> {(spot as any).requestedFrom || '--:--'} às {(spot as any).requestedUntil || '--:--'}
+              </p>
+            </div>
+          )}
         </div>
         <AlertDialogFooter className="grid grid-cols-2 gap-2">
           <AlertDialogCancel
@@ -958,6 +974,8 @@ function VacateButton({
 // ─── SpotCard ────────────────────────────────────────────────────────────────
 function RequestSpotDialog({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id: number; carPlate?: string | null } }) {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [reqFrom, setReqFrom] = useState(spot.availableFrom);
+  const [reqUntil, setReqUntil] = useState(spot.availableUntil);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -1049,6 +1067,31 @@ function RequestSpotDialog({ spot, currentUser }: { spot: ParkingSpot; currentUs
           </div>
         )}
 
+        <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">De (Horário)</Label>
+            <Input
+              type="time"
+              value={reqFrom}
+              min={spot.availableFrom}
+              max={spot.availableUntil}
+              onChange={(e) => setReqFrom(e.target.value)}
+              className="rounded-xl h-11"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Até (Horário)</Label>
+            <Input
+              type="time"
+              value={reqUntil}
+              min={reqFrom}
+              max={spot.availableUntil}
+              onChange={(e) => setReqUntil(e.target.value)}
+              className="rounded-xl h-11"
+            />
+          </div>
+        </div>
+
         <Button
           className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25"
           disabled={expressing || (isRecurring && selectedDays.length === 0)}
@@ -1061,7 +1104,9 @@ function RequestSpotDialog({ spot, currentUser }: { spot: ParkingSpot; currentUs
               id: spot.id,
               data: {
                 interestedUserId: currentUser.id,
-                requestedDays: isRecurring ? selectedDays : null
+                requestedDays: isRecurring ? selectedDays : null,
+                requestedFrom: reqFrom,
+                requestedUntil: reqUntil,
               } as any
             });
           }}

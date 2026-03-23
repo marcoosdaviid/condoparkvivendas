@@ -812,6 +812,12 @@ components:
           nullable: true
           items:
             type: string
+        requestedFrom:
+          type: string
+          nullable: true
+        requestedUntil:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -859,6 +865,12 @@ components:
           nullable: true
           items:
             type: string
+        requestedFrom:
+          type: string
+          nullable: true
+        requestedUntil:
+          type: string
+          nullable: true
       required: [interestedUserId]
 
     ConfirmOccupationInput:

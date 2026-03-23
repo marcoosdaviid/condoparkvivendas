@@ -82,9 +82,11 @@ async function selectFullSpot(id: number) {
 
 // Global cleanup for expired spots
 async function cleanupExpiredSpots() {
-  // Hotpatch: ensure column exists
+  // Hotpatch: ensure columns exist
   try {
     await db.execute(sql`ALTER TABLE parking_spots ADD COLUMN IF NOT EXISTS requested_days text[]`);
+    await db.execute(sql`ALTER TABLE parking_spots ADD COLUMN IF NOT EXISTS requested_from text`);
+    await db.execute(sql`ALTER TABLE parking_spots ADD COLUMN IF NOT EXISTS requested_until text`);
   } catch (err) { }
 
   const now = new Date();
@@ -110,7 +112,7 @@ async function cleanupExpiredSpots() {
         eq(parkingSpotsTable.spotType, "ONE_TIME"),
         or(
           sql`${parkingSpotsTable.date} < ${todayStr}`,
-          and(eq(parkingSpotsTable.date, todayStr), sql`${parkingSpotsTable.availableUntil} < ${currentTime}`)
+          and(eq(parkingSpotsTable.date, todayStr), sql`COALESCE(${parkingSpotsTable.expectedExitTime}, ${parkingSpotsTable.availableUntil}) < ${currentTime}`)
         )
       )
     );
@@ -126,12 +128,14 @@ async function cleanupExpiredSpots() {
       carPlate: null,
       expectedExitTime: null,
       requestedDays: null,
+      requestedFrom: null,
+      requestedUntil: null,
     })
     .where(
       and(
         eq(parkingSpotsTable.status, "OCCUPIED"),
         eq(parkingSpotsTable.spotType, "RECURRING"),
-        sql`${parkingSpotsTable.availableUntil} < ${currentTime}`
+        sql`COALESCE(${parkingSpotsTable.expectedExitTime}, ${parkingSpotsTable.availableUntil}) < ${currentTime}`
       )
     );
 }
@@ -162,6 +166,8 @@ router.get("/spots", async (_req, res): Promise<void> => {
       carPlate: parkingSpotsTable.carPlate,
       expectedExitTime: parkingSpotsTable.expectedExitTime,
       requestedDays: parkingSpotsTable.requestedDays,
+      requestedFrom: parkingSpotsTable.requestedFrom,
+      requestedUntil: parkingSpotsTable.requestedUntil,
       createdAt: parkingSpotsTable.createdAt,
     })
     .from(parkingSpotsTable)
@@ -486,6 +492,8 @@ router.post("/spots/:id/decline", async (req, res): Promise<void> => {
       carPlate: null,
       expectedExitTime: null,
       requestedDays: null,
+      requestedFrom: null,
+      requestedUntil: null,
     })
     .where(eq(parkingSpotsTable.id, spotId));
 
@@ -575,6 +583,8 @@ router.post("/spots/:id/interest", async (req, res): Promise<void> => {
       status: "PENDING_CONFIRMATION",
       interestedUserId: body.data.interestedUserId,
       requestedDays: (body.data as any).requestedDays || null,
+      requestedFrom: (body.data as any).requestedFrom || null,
+      requestedUntil: (body.data as any).requestedUntil || null,
       approvalToken,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
@@ -617,11 +627,12 @@ router.post("/spots/:id/confirm", async (req, res): Promise<void> => {
     .update(parkingSpotsTable)
     .set({
       status: "OCCUPIED",
-      approvalToken: null,
       occupantName: body.data.occupantName,
       occupantApartment: body.data.occupantApartment,
       carPlate: body.data.carPlate,
-      expectedExitTime: body.data.expectedExitTime,
+      expectedExitTime: body.data.expectedExitTime || spot.requestedUntil || spot.availableUntil,
+      interestedUserId: spot.interestedUserId,
+      approvalToken: null,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
 
@@ -672,6 +683,8 @@ router.post("/spots/:id/vacate", async (req, res): Promise<void> => {
       carPlate: null,
       expectedExitTime: null,
       requestedDays: null,
+      requestedFrom: null,
+      requestedUntil: null,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
 

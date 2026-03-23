@@ -19,8 +19,10 @@ export const parkingSpotsTable = pgTable("parking_spots", {
   carPlate: text("car_plate"),
   expectedExitTime: text("expected_exit_time"),
   requestedDays: text("requested_days").array(),
+  requestedFrom: text("requested_from"),
+  requestedUntil: text("requested_until"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+})
 
 export const insertParkingSpotSchema = createInsertSchema(parkingSpotsTable).omit({ id: true, createdAt: true });
 export type InsertParkingSpot = z.infer<typeof insertParkingSpotSchema>;
