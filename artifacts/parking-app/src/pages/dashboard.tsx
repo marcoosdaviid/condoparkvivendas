@@ -221,7 +221,7 @@ export default function Dashboard() {
         {mySpots.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2 px-1">
-              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Minhas Anunciações</h3>
+              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Minhas vagas publicadas</h3>
             </div>
             <AnimatePresence>
               {mySpots.map(spot => (
