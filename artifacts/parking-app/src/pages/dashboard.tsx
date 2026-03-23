@@ -1142,8 +1142,18 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
   const isInterestedUser = spot.interestedUserId === currentUser.id;
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
 
+  const RECURRING_MAP: Record<string, string> = {
+    mon: "às segundas-feiras",
+    tue: "às terças-feiras",
+    wed: "às quartas-feiras",
+    thu: "às quintas-feiras",
+    fri: "às sextas-feiras",
+    sat: "aos sábados",
+    sun: "aos domingos"
+  };
+
   const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
-    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
+    ? spot.daysOfWeek.map((d) => RECURRING_MAP[d] ?? d).join(", ")
     : null;
 
   const { mutate: renotify, isPending: renotifying } = useExpressInterest({
@@ -1173,14 +1183,14 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 border-2 border-primary/10 shadow-sm">
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                {getInitials(spot.userName)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border-2 border-primary/20 text-primary font-bold text-lg flex items-center justify-center shadow-sm">
+              {spot.userParkingSpotNumber ?? "--"}
+            </div>
             <div>
-              <p className="font-semibold text-slate-900 dark:text-white leading-tight">{spot.userName}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <p className="font-display font-semibold text-slate-900 dark:text-white text-lg leading-tight truncate max-w-[12rem]">
+                Vaga {spot.userParkingSpotNumber ?? "Não Informada"}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                 <Building2 className="w-3 h-3" /> Apto {spot.userApartment}
               </p>
             </div>
@@ -1188,19 +1198,25 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           <Badge className={`border-0 text-xs font-bold ${st.color} shrink-0`}>{st.label}</Badge>
         </div>
 
-        <div className="mt-3 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} – {spot.availableUntil}
-          </span>
-          {spot.spotType === "RECURRING" ? (
-            <span className="flex items-center gap-1.5 text-primary font-medium">
-              <RotateCcw className="w-3.5 h-3.5" /> {recurringLabel}
+        <div className="mt-4 flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+            <Clock className="w-5 h-5 text-primary shrink-0" />
+            <span className="text-xl font-display font-bold">
+              {spot.availableFrom} – {spot.availableUntil}
             </span>
-          ) : spot.date ? (
-            <span className="flex items-center gap-1.5">
-              <CalendarDays className="w-3.5 h-3.5" /> {spot.date}
-            </span>
-          ) : null}
+          </div>
+          
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+            {spot.spotType === "RECURRING" ? (
+              <span className="flex items-center gap-1.5 text-primary font-medium text-[15px]">
+                <RotateCcw className="w-4 h-4" /> {recurringLabel}
+              </span>
+            ) : spot.date ? (
+              <span className="flex items-center gap-1.5 font-medium text-[15px]">
+                <CalendarDays className="w-4 h-4" /> {spot.date.split("-").reverse().join("/")}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {spot.status === "AVAILABLE" && (

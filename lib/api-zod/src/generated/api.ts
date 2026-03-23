@@ -101,6 +101,7 @@ export const GetAvailableSpotsResponseItem = zod.object({
   userName: zod.string(),
   userApartment: zod.string(),
   userPhone: zod.string(),
+  userParkingSpotNumber: zod.string().nullish(),
   spotType: zod.enum(["ONE_TIME", "RECURRING"]),
   daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
