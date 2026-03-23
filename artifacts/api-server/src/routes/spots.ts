@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, ne, or, sql } from "drizzle-orm";
-import { db, parkingSpotsTable, usersTable } from "@workspace/db";
+import { db, parkingSpotsTable, usersTable, spotEventsTable } from "@workspace/db";
 import {
   CreateSpotBody,
   RemoveSpotParams,
@@ -22,6 +22,32 @@ import {
   VacateSpotResponse,
 } from "@workspace/api-zod";
 import crypto from "crypto";
+
+// Hotpatch: ensure spot_events table exists
+async function ensureSpotEventsTable() {
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS spot_events (
+        id SERIAL PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        spot_id INTEGER NOT NULL,
+        spot_number TEXT,
+        owner_id INTEGER,
+        owner_name TEXT,
+        owner_apartment TEXT,
+        requester_id INTEGER,
+        requester_name TEXT,
+        requester_apartment TEXT,
+        date TEXT,
+        available_from TEXT,
+        available_until TEXT,
+        actual_exit_time TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+  } catch (err) { /* already exists */ }
+}
+ensureSpotEventsTable();
 
 const router: IRouter = Router();
 
@@ -531,6 +557,53 @@ router.post("/spots/:id/decline", async (req, res): Promise<void> => {
   res.json({ message: "Solicitação recusada. Vaga disponível novamente." });
 });
 
+// POST /spots/:id/cancel-interest — requester cancels their own pending request
+router.post("/spots/:id/cancel-interest", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const spotId = Number(rawId);
+  const { userId } = req.body as { userId?: number };
+
+  if (!spotId || isNaN(spotId) || !userId) {
+    res.status(400).json({ error: "Parâmetros inválidos" });
+    return;
+  }
+
+  const [spot] = await db.select().from(parkingSpotsTable).where(eq(parkingSpotsTable.id, spotId));
+
+  if (!spot) {
+    res.status(404).json({ error: "Vaga não encontrada" });
+    return;
+  }
+
+  if (spot.status !== "PENDING_CONFIRMATION") {
+    res.status(400).json({ error: "Esta vaga não está aguardando aprovação" });
+    return;
+  }
+
+  if (spot.interestedUserId !== userId) {
+    res.status(403).json({ error: "Você não é o solicitante desta vaga" });
+    return;
+  }
+
+  await db
+    .update(parkingSpotsTable)
+    .set({
+      status: "AVAILABLE",
+      interestedUserId: null,
+      approvalToken: null,
+      occupantName: null,
+      occupantApartment: null,
+      carPlate: null,
+      expectedExitTime: null,
+      requestedDays: null,
+      requestedFrom: null,
+      requestedUntil: null,
+    })
+    .where(eq(parkingSpotsTable.id, spotId));
+
+  res.json({ message: "Solicitação cancelada. Vaga disponível novamente." });
+});
+
 // DELETE /spots/:id
 router.delete("/spots/:id", async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
@@ -620,6 +693,27 @@ router.post("/spots/:id/interest", async (req, res): Promise<void> => {
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
 
+  // Analytics: record SPOT_REQUESTED event
+  try {
+    const [owner] = await db.select({ name: usersTable.name, apartment: usersTable.apartment, parkingSpotNumber: usersTable.parkingSpotNumber })
+      .from(usersTable).where(eq(usersTable.id, spot.userId)).limit(1);
+    await db.insert(spotEventsTable).values({
+      eventType: "SPOT_REQUESTED",
+      spotId: spot.id,
+      spotNumber: owner?.parkingSpotNumber ?? null,
+      ownerId: spot.userId,
+      ownerName: owner?.name ?? null,
+      ownerApartment: owner?.apartment ?? null,
+      requesterId: body.data.interestedUserId,
+      requesterName: interestedUser.name,
+      requesterApartment: interestedUser.apartment,
+      date: spot.date,
+      availableFrom: spot.availableFrom,
+      availableUntil: spot.availableUntil,
+      actualExitTime: null,
+    });
+  } catch (e) { /* non-blocking */ }
+
   const full = await selectFullSpot(params.data.id);
   res.json(ExpressInterestResponse.parse(full));
 });
@@ -666,6 +760,35 @@ router.post("/spots/:id/confirm", async (req, res): Promise<void> => {
       approvalToken: null,
     })
     .where(eq(parkingSpotsTable.id, params.data.id));
+
+  // Analytics: record PERMISSION_GRANTED event
+  try {
+    const [owner] = await db.select({ name: usersTable.name, apartment: usersTable.apartment, parkingSpotNumber: usersTable.parkingSpotNumber })
+      .from(usersTable).where(eq(usersTable.id, spot.userId)).limit(1);
+    let requesterName: string | null = null;
+    let requesterApartment: string | null = null;
+    if (spot.interestedUserId) {
+      const [reqUser] = await db.select({ name: usersTable.name, apartment: usersTable.apartment })
+        .from(usersTable).where(eq(usersTable.id, spot.interestedUserId)).limit(1);
+      requesterName = reqUser?.name ?? null;
+      requesterApartment = reqUser?.apartment ?? null;
+    }
+    await db.insert(spotEventsTable).values({
+      eventType: "PERMISSION_GRANTED",
+      spotId: spot.id,
+      spotNumber: owner?.parkingSpotNumber ?? null,
+      ownerId: spot.userId,
+      ownerName: owner?.name ?? null,
+      ownerApartment: owner?.apartment ?? null,
+      requesterId: spot.interestedUserId ?? null,
+      requesterName,
+      requesterApartment,
+      date: spot.date,
+      availableFrom: spot.availableFrom,
+      availableUntil: spot.availableUntil,
+      actualExitTime: body.data.expectedExitTime || spot.requestedUntil || spot.availableUntil,
+    });
+  } catch (e) { /* non-blocking */ }
 
   const full = await selectFullSpot(params.data.id);
   res.json(ConfirmOccupationResponse.parse(full));
@@ -724,3 +847,19 @@ router.post("/spots/:id/vacate", async (req, res): Promise<void> => {
 });
 
 export default router;
+
+// GET /spots/events — admin analytics
+router.get("/spots/events", async (req, res): Promise<void> => {
+  const { type } = req.query as { type?: string };
+  let rows;
+  if (type) {
+    rows = await db.select().from(spotEventsTable)
+      .where(eq(spotEventsTable.eventType, type))
+      // orderBy not available simply, use raw
+      .orderBy(spotEventsTable.createdAt);
+  } else {
+    rows = await db.select().from(spotEventsTable)
+      .orderBy(spotEventsTable.createdAt);
+  }
+  res.json(rows.reverse()); // newest first
+});

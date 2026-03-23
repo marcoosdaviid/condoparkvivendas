@@ -8,7 +8,7 @@ import {
   CarFront, LogOut, Phone, Clock, Building2, MapPin,
   Loader2, Plus, HandHelping, CalendarDays, CheckCircle2,
   Car, KeyRound, UserCheck, CircleCheck, AlertCircle, Trash2,
-  MessageCircle, Settings, RotateCcw,
+  MessageCircle, Settings, RotateCcw, X,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth";
@@ -506,6 +506,65 @@ function RemoveSpotAction({ spotId }: { spotId: number }) {
     <AlertDialogAction onClick={() => mutate({ id: spotId })} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isPending}>
       {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Remover"}
     </AlertDialogAction>
+  );
+}
+
+function CancelInterestButton({ spotId, userId }: { spotId: number; userId: number }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+
+  const handleCancel = async () => {
+    setIsPending(true);
+    try {
+      const res = await fetch(`/api/spots/${spotId}/cancel-interest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Erro ao cancelar");
+      }
+      invalidateSpots(queryClient);
+      toast({ title: "Solicitação cancelada", description: "A vaga voltou a estar disponível." });
+    } catch (e: any) {
+      toast({ title: "Erro ao cancelar", description: e.message, variant: "destructive" });
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full h-10 rounded-2xl font-semibold text-sm gap-2 border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-700 dark:text-rose-400 dark:hover:bg-rose-900/20"
+          disabled={isPending}
+        >
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> Cancelar solicitação</>}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="rounded-3xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancelar solicitação?</AlertDialogTitle>
+          <AlertDialogDescription>
+            A vaga voltará a estar disponível e outros vizinhos poderão solicitá-la.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="rounded-xl">Manter solicitação</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleCancel}
+            className="rounded-xl bg-rose-500 hover:bg-rose-600 text-white"
+            disabled={isPending}
+          >
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sim, cancelar"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -1252,6 +1311,7 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
                     <><MessageCircle className="w-4 h-4" /> Reenviar pelo WhatsApp</>
                   )}
                 </Button>
+                <CancelInterestButton spotId={spot.id} userId={currentUser.id} />
               </>
             ) : (
               <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl">
