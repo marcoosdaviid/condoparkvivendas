@@ -167,16 +167,16 @@ router.get("/spots", async (_req, res): Promise<void> => {
     .from(parkingSpotsTable)
     .innerJoin(usersTable, eq(parkingSpotsTable.userId, usersTable.id))
     .where(
-      or(
-        // ONE_TIME spots for today
-        and(
-          eq(parkingSpotsTable.spotType, "ONE_TIME"),
-          eq(parkingSpotsTable.date, today)
-        ),
-        // RECURRING spots for today's day of week
-        and(
-          eq(parkingSpotsTable.spotType, "RECURRING"),
-          sql`${dow} = ANY(${parkingSpotsTable.daysOfWeek})`
+      and(
+        ne(parkingSpotsTable.status, "FINISHED"),
+        or(
+          // ONE_TIME spots from today onwards
+          and(
+            eq(parkingSpotsTable.spotType, "ONE_TIME"),
+            sql`${parkingSpotsTable.date} >= ${today}`
+          ),
+          // RECURRING spots (always visible if published)
+          eq(parkingSpotsTable.spotType, "RECURRING")
         )
       )
     )
