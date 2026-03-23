@@ -140,13 +140,9 @@ const invalidateRequests = (qc: ReturnType<typeof useQueryClient>) =>
 export default function Dashboard() {
   const { user, logout, login } = useAuth();
   const { data: spots, isLoading: spotsLoading } = useGetAvailableSpots();
-  const { data: mySpotData, isLoading: mySpotLoading } = useGetMySpot(
-    { userId: user!.id },
-    { query: { enabled: !!user?.id, throwOnError: false, queryKey: getGetMySpotQueryKey({ userId: user!.id }) } }
-  );
   const { data: requests, isLoading: requestsLoading } = useGetSpotRequests();
 
-  const mySpot: ParkingSpot | undefined = mySpotData ?? undefined;
+  const mySpots = spots?.filter((s) => s.userId === user?.id) || [];
   const otherSpots = spots?.filter((s) => s.userId !== user?.id) || [];
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
   const myRequest = requests?.find((r) => r.userId === user?.id);
@@ -212,31 +208,30 @@ export default function Dashboard() {
         {/* BOTÕES DE AÇÃO RÁPIDA */}
         <div className="w-full">
           <AnimatePresence mode="popLayout">
-            {mySpotLoading ? (
-              <Skeleton className="h-14 rounded-2xl" />
-            ) : mySpot ? (
-              <motion.div key="my-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <MySpotQuickButton spot={mySpot} userId={user!.id} />
-              </motion.div>
-            ) : (
-              <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-                <CreateSpotDialog
-                  userId={user!.id}
-                  parkingSpotNumber={user?.parkingSpotNumber}
-                />
-              </motion.div>
-            )}
+            <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+              <CreateSpotDialog
+                userId={user!.id}
+                parkingSpotNumber={user?.parkingSpotNumber}
+              />
+            </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* MINHA VAGA — CARD DE ESTADO DETALHADO */}
-        <AnimatePresence>
-          {mySpot && (
-            <motion.div key="owner-card" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-              <OwnerSpotCard spot={mySpot} parkingSpotNumber={user?.parkingSpotNumber} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* MINHAS VAGAS — CARDS DETALHADOS */}
+        {mySpots.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Minhas Anunciações</h3>
+            </div>
+            <AnimatePresence>
+              {mySpots.map(spot => (
+                <motion.div key={`owner-card-${spot.id}`} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+                  <OwnerSpotCard spot={spot} parkingSpotNumber={user?.parkingSpotNumber} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* VAGA QUE ESTOU USANDO — CARD DO OCUPANTE */}
         <AnimatePresence>
@@ -497,41 +492,6 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
 }
 
 // Botão rápido do dono
-function MySpotQuickButton({ spot, userId }: { spot: ParkingSpot; userId: number }) {
-  const statusConfig = {
-    AVAILABLE: { label: "Minha vaga ativa", icon: <CheckCircle2 className="w-4 h-4 mb-0.5" />, cls: "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10" },
-    PENDING_CONFIRMATION: { label: "Confirmar uso", icon: <UserCheck className="w-4 h-4 mb-0.5" />, cls: "border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
-    OCCUPIED: { label: "Desocupar vaga", icon: <KeyRound className="w-4 h-4 mb-0.5" />, cls: "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-400" },
-    FINISHED: { label: "Encerrada", icon: <CircleCheck className="w-4 h-4 mb-0.5" />, cls: "border-slate-200 bg-slate-50 text-slate-500" },
-  }[spot.status] ?? { label: spot.status, icon: null, cls: "" };
-
-  if (spot.status === "PENDING_CONFIRMATION") {
-    return <ConfirmOccupationDialog spot={spot} triggerCls={statusConfig.cls} triggerLabel={statusConfig.label} triggerIcon={statusConfig.icon} />;
-  }
-  if (spot.status === "OCCUPIED") {
-    return <VacateButton spot={spot} triggerCls={statusConfig.cls} triggerLabel={statusConfig.label} triggerIcon={statusConfig.icon} />;
-  }
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button variant="outline" size="lg" className={`w-full h-14 rounded-2xl font-semibold text-sm flex-col gap-0.5 px-3 ${statusConfig.cls}`}>
-          {statusConfig.icon}
-          <span className="leading-tight text-center">{statusConfig.label}</span>
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent className="rounded-3xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Remover anúncio?</AlertDialogTitle>
-          <AlertDialogDescription>Sua vaga será removida da lista imediatamente.</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
-          <RemoveSpotAction spotId={spot.id} />
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
 
 function RemoveSpotAction({ spotId }: { spotId: number }) {
   const queryClient = useQueryClient();
@@ -576,6 +536,31 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} às {spot.availableUntil}
         </span>
+        {spot.date && (
+          <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <CalendarDays className="w-3.5 h-3.5" /> {spot.date.split("-").reverse().join("/")}
+          </span>
+        )}
+      </div>
+
+      <div className="absolute top-2 right-2">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="rounded-3xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover esta publicação?</AlertDialogTitle>
+              <AlertDialogDescription>Esta data específica será removida da lista de disponibilidade imediatamente.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <RemoveSpotAction spotId={spot.id} />
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {recurringLabel && (
