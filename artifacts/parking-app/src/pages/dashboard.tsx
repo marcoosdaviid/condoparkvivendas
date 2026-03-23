@@ -582,9 +582,9 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-200 dark:border-yellow-800 space-y-1">
           <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">Interessado</p>
           <p className="font-semibold text-slate-900 dark:text-slate-100">{spot.interestedUserName} · Apto {spot.interestedUserApartment}</p>
-          {spot.requestedDays && (spot.requestedDays as any).length > 0 && (
+          {Array.isArray(spot.requestedDays) && spot.requestedDays.length > 0 && (
             <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-              Solicitou usar: {(spot.requestedDays as any).map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label).join(", ")}
+              Solicitou usar: {spot.requestedDays.map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label || d).join(", ")}
             </p>
           )}
           <a href={`tel:${spot.interestedUserPhone}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
@@ -600,9 +600,9 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800 space-y-1">
           <p className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider">Em uso</p>
           <p className="font-semibold text-slate-900 dark:text-slate-100">{spot.occupantName} · Apto {spot.occupantApartment}</p>
-          {spot.requestedDays && (spot.requestedDays as any).length > 0 && (
+          {Array.isArray(spot.requestedDays) && spot.requestedDays.length > 0 && (
             <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Dias ativos: {(spot.requestedDays as any).map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label).join(", ")}
+              Dias ativos: {spot.requestedDays.map((d: string) => DAYS_OF_WEEK.find(x => x.key === d)?.label || d).join(", ")}
             </p>
           )}
           <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
@@ -1084,7 +1084,27 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
     ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
     : null;
 
-  // Removido handleTalkToOwner para usar o Dialog
+  const { mutate: renotify, isPending: renotifying } = useExpressInterest({
+    mutation: {
+      onSuccess: (data: any) => {
+        const token = data?.approvalToken;
+        if (token) {
+          const base = import.meta.env.BASE_URL ?? "/";
+          const approvalUrl = `${window.location.origin}${base}approve?spotId=${data.id}&token=${token}`;
+          const msg = `Oi! Reenviando minha solicitação da sua vaga no CondoPark Vivendas.\nConfirme aqui:\n${approvalUrl}`;
+          const phone = (data.userPhone ?? "").replace(/\D/g, "");
+          window.open(`whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`, "_blank");
+          toast({ title: "Link reenviado!", description: "Continue pelo WhatsApp." });
+        }
+      },
+      onError: (err: any) =>
+        toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
+    },
+  });
+
+  function handleReSendWhatsApp() {
+    renotify({ id: spot.id, data: { interestedUserId: currentUser.id, requestedDays: spot.requestedDays } as any });
+  }
 
   return (
     <Card className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow">
@@ -1145,10 +1165,10 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
                 <Button
                   variant="outline"
                   className="w-full h-10 rounded-2xl font-semibold text-sm gap-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-900/20"
-                  onClick={handleTalkToOwner}
-                  disabled={expressing}
+                  onClick={handleReSendWhatsApp}
+                  disabled={renotifying}
                 >
-                  {expressing ? (
+                  {renotifying ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <><MessageCircle className="w-4 h-4" /> Reenviar pelo WhatsApp</>
