@@ -121,6 +121,28 @@ const DAYS_OF_WEEK = [
   { key: "sat", label: "Sáb" },
 ];
 
+const RECURRING_DAY_DESCRIPTIONS: Record<string, string> = {
+  sun: "domingos",
+  mon: "segundas-feiras",
+  tue: "terças-feiras",
+  wed: "quartas-feiras",
+  thu: "quintas-feiras",
+  fri: "sextas-feiras",
+  sat: "sábados",
+};
+
+const formatRecurringDescription = (days?: string[] | null) => {
+  if (!days || days.length === 0) return null;
+  const readable = days
+    .map((day) => RECURRING_DAY_DESCRIPTIONS[day] ?? day)
+    .filter(Boolean);
+
+  if (readable.length === 0) return null;
+  if (readable.length === 1) return `às ${readable[0]}`;
+  if (readable.length === 2) return `às ${readable[0]} e ${readable[1]}`;
+  return `às ${readable.slice(0, -1).join(", ")} e ${readable[readable.length - 1]}`;
+};
+
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   AVAILABLE: { label: "Disponível", color: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
   PENDING_CONFIRMATION: { label: "Aguard. confirmação", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300" },
@@ -512,10 +534,11 @@ function RemoveSpotAction({ spotId }: { spotId: number }) {
 // Card detalhado do dono
 function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parkingSpotNumber?: string | null }) {
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
+  const recurringDescription =
+    spot.spotType === "RECURRING" ? formatRecurringDescription(spot.daysOfWeek) : null;
 
-  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
-    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
-    : null;
+  const recurringDescription =
+    spot.spotType === "RECURRING" ? formatRecurringDescription(spot.daysOfWeek) : null;
 
   return (
     <Card className="rounded-3xl border border-primary/15 bg-primary/5 dark:bg-primary/10 p-5 space-y-3 shadow-inner overflow-hidden relative">
@@ -1142,10 +1165,6 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
   const isInterestedUser = spot.interestedUserId === currentUser.id;
   const st = STATUS_LABEL[spot.status] ?? { label: spot.status, color: "" };
 
-  const recurringLabel = spot.spotType === "RECURRING" && spot.daysOfWeek
-    ? spot.daysOfWeek.map((d) => DAYS_OF_WEEK.find((x) => x.key === d)?.label ?? d).join(", ")
-    : null;
-
   const { mutate: renotify, isPending: renotifying } = useExpressInterest({
     mutation: {
       onSuccess: (data: any) => {
@@ -1171,36 +1190,33 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
   return (
     <Card className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-11 w-11 border-2 border-primary/10 shadow-sm">
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                {getInitials(spot.userName)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold text-slate-900 dark:text-white leading-tight">{spot.userName}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <Building2 className="w-3 h-3" /> Apto {spot.userApartment}
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="flex items-center gap-1.5 text-lg font-semibold text-slate-900 dark:text-white">
+              <MapPin className="w-4 h-4 text-slate-500" />
+              {spot.parkingSpotNumber ? `Vaga ${spot.parkingSpotNumber}` : "Vaga disponível"}
+            </p>
           </div>
           <Badge className={`border-0 text-xs font-bold ${st.color} shrink-0`}>{st.label}</Badge>
         </div>
 
-        <div className="mt-3 flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 flex-wrap">
-          <span className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} – {spot.availableUntil}
-          </span>
-          {spot.spotType === "RECURRING" ? (
-            <span className="flex items-center gap-1.5 text-primary font-medium">
-              <RotateCcw className="w-3.5 h-3.5" /> {recurringLabel}
+        <div className="mt-3 flex items-center gap-3 text-slate-500 dark:text-slate-400 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Clock className="w-4 h-4" />
+            <span className="text-lg font-semibold text-slate-900 dark:text-white">
+              {spot.availableFrom} – {spot.availableUntil}
             </span>
-          ) : spot.date ? (
+          </span>
+          {recurringDescription && (
+            <span className="flex items-center gap-1.5 text-sm text-primary font-medium">
+              <RotateCcw className="w-3.5 h-3.5" /> {recurringDescription}
+            </span>
+          )}
+          {spot.spotType !== "RECURRING" && spot.date && (
             <span className="flex items-center gap-1.5">
               <CalendarDays className="w-3.5 h-3.5" /> {spot.date}
             </span>
-          ) : null}
+          )}
         </div>
 
         {spot.status === "AVAILABLE" && (

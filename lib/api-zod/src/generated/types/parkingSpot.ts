@@ -14,6 +14,7 @@ export interface ParkingSpot {
   userName: string;
   userApartment: string;
   userPhone: string;
+  parkingSpotNumber?: string | null;
   spotType: ParkingSpotSpotType;
   daysOfWeek?: string[] | null;
   availableFrom: string;

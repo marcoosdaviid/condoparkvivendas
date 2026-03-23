@@ -762,6 +762,9 @@ components:
           type: string
         userPhone:
           type: string
+        parkingSpotNumber:
+          type: string
+          nullable: true
         spotType:
           type: string
           enum: [ONE_TIME, RECURRING]
