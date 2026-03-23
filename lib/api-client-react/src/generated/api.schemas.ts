@@ -109,7 +109,7 @@ export interface CreateSpotInput {
   daysOfWeek?: string[] | null;
   availableFrom: string;
   availableUntil: string;
-  date?: string | null;
+  dates?: string[] | null;
 }
 
 export interface ExpressInterestInput {

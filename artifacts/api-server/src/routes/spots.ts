@@ -321,8 +321,14 @@ router.post("/spots", async (req, res): Promise<void> => {
       )
     );
 
+  const requestedDates = spotType === "ONE_TIME" 
+    ? (parsed.data.dates && parsed.data.dates.length > 0 ? parsed.data.dates : [today])
+    : [];
+
   const hasConflict = allActiveSpots.some((s) => {
-    if (s.spotType === "ONE_TIME") return s.date === today;
+    if (s.spotType === "ONE_TIME") {
+       return s.date && requestedDates.includes(s.date);
+    }
     if (s.spotType === "RECURRING") {
       const days = s.daysOfWeek ?? [];
       return days.includes(dow);
@@ -331,25 +337,48 @@ router.post("/spots", async (req, res): Promise<void> => {
   });
 
   if (hasConflict) {
-    res.status(409).json({ error: "Você já tem uma vaga anunciada hoje" });
+    res.status(409).json({ error: "Você já tem uma vaga anunciada para uma das datas/dias selecionados" });
     return;
   }
 
-  const [spot] = await db
-    .insert(parkingSpotsTable)
-    .values({
-      userId: parsed.data.userId,
-      spotType,
-      daysOfWeek: spotType === "RECURRING" ? (parsed.data.daysOfWeek ?? []) : null,
-      availableFrom: parsed.data.availableFrom,
-      availableUntil: parsed.data.availableUntil,
-      date: spotType === "ONE_TIME" ? (parsed.data.date ?? today) : null,
-      status: "AVAILABLE",
-    })
-    .returning();
+  if (spotType === "ONE_TIME") {
+    const insertedSpots = await Promise.all(
+      requestedDates.map((dateStr) =>
+        db
+          .insert(parkingSpotsTable)
+          .values({
+            userId: parsed.data.userId,
+            spotType,
+            daysOfWeek: null,
+            availableFrom: parsed.data.availableFrom,
+            availableUntil: parsed.data.availableUntil,
+            date: dateStr,
+            status: "AVAILABLE",
+          })
+          .returning()
+      )
+    );
+    // Return first created spot to comply with single object return type (frontend will query all anyway)
+    const [spot] = insertedSpots[0];
+    const full = await selectFullSpot(spot.id);
+    res.status(201).json(full);
+  } else {
+    const [spot] = await db
+      .insert(parkingSpotsTable)
+      .values({
+        userId: parsed.data.userId,
+        spotType,
+        daysOfWeek: parsed.data.daysOfWeek ?? [],
+        availableFrom: parsed.data.availableFrom,
+        availableUntil: parsed.data.availableUntil,
+        date: null,
+        status: "AVAILABLE",
+      })
+      .returning();
 
-  const full = await selectFullSpot(spot.id);
-  res.status(201).json(full);
+    const full = await selectFullSpot(spot.id);
+    res.status(201).json(full);
+  }
 });
 
 // GET /spots/approve — preview pending approval info (read-only, no side effects)

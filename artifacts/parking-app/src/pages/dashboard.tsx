@@ -61,6 +61,7 @@ const createSpotSchema = z.object({
   spotType: z.enum(["ONE_TIME", "RECURRING"]),
   daysOfWeek: z.array(z.string()).optional(),
   date: z.string().optional(),
+  endDate: z.string().optional(),
   availableFrom: z.string().min(1, "Horário de início é obrigatório"),
   availableUntil: z.string().min(1, "Horário de término é obrigatório"),
 }).superRefine((data, ctx) => {
@@ -68,7 +69,10 @@ const createSpotSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["daysOfWeek"], message: "Selecione pelo menos um dia" });
   }
   if (data.spotType === "ONE_TIME" && !data.date) {
-    ctx.addIssue({ code: "custom", path: ["date"], message: "Data é obrigatória" });
+    ctx.addIssue({ code: "custom", path: ["date"], message: "Data de início é obrigatória" });
+  }
+  if (data.spotType === "ONE_TIME" && data.date && data.endDate && data.endDate < data.date) {
+    ctx.addIssue({ code: "custom", path: ["endDate"], message: "Término não pode ser antes do início" });
   }
 });
 
@@ -686,6 +690,7 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
       spotType: "ONE_TIME",
       daysOfWeek: [],
       date: todayStr(),
+      endDate: "",
       availableFrom: "09:00",
       availableUntil: "17:00",
     },
@@ -700,7 +705,7 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
         invalidateSpots(queryClient);
         setOpen(false);
         toast({ title: "Vaga compartilhada!", description: "Obrigado por ajudar o condomínio." });
-        form.reset({ spotType: "ONE_TIME", daysOfWeek: [], date: todayStr(), availableFrom: "09:00", availableUntil: "17:00" });
+        form.reset({ spotType: "ONE_TIME", daysOfWeek: [], date: todayStr(), endDate: "", availableFrom: "09:00", availableUntil: "17:00" });
       },
       onError: (err: any) => toast({ title: "Erro ao compartilhar", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
     },
@@ -739,7 +744,19 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
           <DialogDescription>Defina quando sua vaga estará disponível.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit((v) => mutate({ data: { userId, ...v } }))} className="space-y-5 mt-4">
+        <form onSubmit={form.handleSubmit((v) => {
+          let dates: string[] = [];
+          if (v.spotType === "ONE_TIME" && v.date) {
+            const start = new Date(`${v.date}T12:00:00Z`);
+            const end = v.endDate ? new Date(`${v.endDate}T12:00:00Z`) : start;
+            let cur = new Date(start);
+            while (cur <= end) {
+              dates.push(cur.toISOString().split("T")[0]);
+              cur.setDate(cur.getDate() + 1);
+            }
+          }
+          mutate({ data: { userId, spotType: v.spotType, daysOfWeek: v.daysOfWeek, availableFrom: v.availableFrom, availableUntil: v.availableUntil, dates } as any });
+        })} className="space-y-5 mt-4">
           {/* Tipo de disponibilidade */}
           <div className="grid grid-cols-2 gap-2">
             {(["ONE_TIME", "RECURRING"] as const).map((type) => {
@@ -795,18 +812,33 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
               </motion.div>
             ) : (
               <motion.div key="onetime" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                <div className="space-y-2">
-                  <Label htmlFor="spot-date">Data</Label>
-                  <Input
-                    type="date"
-                    id="spot-date"
-                    min={todayStr()}
-                    className="h-12 rounded-xl"
-                    {...form.register("date")}
-                  />
-                  {form.formState.errors.date && (
-                    <p className="text-xs text-destructive">{form.formState.errors.date.message}</p>
-                  )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="spot-date">De <span className="text-[10px] text-slate-400 font-normal ml-1">Início</span></Label>
+                    <Input
+                      type="date"
+                      id="spot-date"
+                      min={todayStr()}
+                      className="h-12 rounded-xl"
+                      {...form.register("date")}
+                    />
+                    {form.formState.errors.date && (
+                      <p className="text-xs text-destructive">{form.formState.errors.date.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="spot-end-date">Até <span className="text-[10px] text-slate-400 font-normal ml-1">Fim (Opcional)</span></Label>
+                    <Input
+                      type="date"
+                      id="spot-end-date"
+                      min={form.watch("date") || todayStr()}
+                      className="h-12 rounded-xl"
+                      {...form.register("endDate")}
+                    />
+                    {form.formState.errors.endDate && (
+                      <p className="text-xs text-destructive">{form.formState.errors.endDate.message}</p>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}

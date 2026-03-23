@@ -136,7 +136,7 @@ export const CreateSpotBody = zod.object({
   daysOfWeek: zod.array(zod.string()).nullish(),
   availableFrom: zod.string(),
   availableUntil: zod.string(),
-  date: zod.string().nullish(),
+  dates: zod.array(zod.string()).nullish(),
 });
 
 /**

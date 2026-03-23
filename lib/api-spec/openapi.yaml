@@ -850,9 +850,11 @@ components:
           type: string
         availableUntil:
           type: string
-        date:
-          type: string
+        dates:
+          type: array
           nullable: true
+          items:
+            type: string
       required: [userId, availableFrom, availableUntil]
 
     ExpressInterestInput:
