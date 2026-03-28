@@ -64,33 +64,32 @@ function formatDate(dateStr: string | null | undefined) {
 }
 
 function EventRow({ event }: { event: any }) {
-    const isPermission = event.event_type === "PERMISSION_GRANTED";
     return (
         <TableRow className="group hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors border-slate-50 dark:border-slate-800">
             <TableCell>
-                {event.event_type === "PERMISSION_GRANTED" ? (
+                {event.eventType === "PERMISSION_GRANTED" ? (
                     <Badge className="gap-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 font-semibold border">
                         <CheckCircle2 className="w-3 h-3" /> Permissão
                     </Badge>
-                ) : event.event_type === "SPOT_REQUESTED" ? (
+                ) : event.eventType === "SPOT_REQUESTED" ? (
                     <Badge className="gap-1.5 bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 font-semibold border">
                         <MessageSquare className="w-3 h-3" /> Solicitação
                     </Badge>
                 ) : (
                     <Badge className="gap-1.5 bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800 font-semibold border">
-                        <X className="w-3 h-3" /> {event.event_type === "REQUEST_CANCELLED" ? "Cancelado" : "Recusado"}
+                        <X className="w-3 h-3" /> {event.eventType === "REQUEST_CANCELLED" ? "Cancelado" : "Recusado"}
                     </Badge>
                 )}
             </TableCell>
             <TableCell>
                 <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-sm">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.owner_name ?? "–"}</span>
-                        <span className="text-slate-400">Apto {event.owner_apartment ?? "–"}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.ownerName ?? "–"}</span>
+                        <span className="text-slate-400">Apto {event.ownerApartment ?? "–"}</span>
                     </div>
-                    {event.spot_number && (
+                    {event.spotNumber && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-800 dark:bg-sky-900/10 dark:text-sky-400">
-                            <ParkingCircle className="w-2.5 h-2.5 mr-0.5" /> Vaga {event.spot_number}
+                            <ParkingCircle className="w-2.5 h-2.5 mr-0.5" /> Vaga {event.spotNumber}
                         </Badge>
                     )}
                 </div>
@@ -101,8 +100,8 @@ function EventRow({ event }: { event: any }) {
             <TableCell>
                 <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-sm">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.requester_name ?? "–"}</span>
-                        <span className="text-slate-400">Apto {event.requester_apartment ?? "–"}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.requesterName ?? "–"}</span>
+                        <span className="text-slate-400">Apto {event.requesterApartment ?? "–"}</span>
                     </div>
                 </div>
             </TableCell>
@@ -115,12 +114,12 @@ function EventRow({ event }: { event: any }) {
             <TableCell>
                 <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 text-sm font-medium">
                     <Clock className="w-3.5 h-3.5 text-primary" />
-                    {event.available_from ?? "–"} – {event.available_until ?? "–"}
+                    {event.availableFrom ?? "–"} – {event.availableUntil ?? "–"}
                 </div>
             </TableCell>
             <TableCell>
                 <div className="text-xs text-slate-400">
-                    {formatDate(event.created_at)}
+                    {formatDate(event.createdAt)}
                 </div>
             </TableCell>
         </TableRow>
@@ -144,10 +143,10 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
         refetchInterval: 30000,
     });
 
-    const permissions = events?.filter((e: any) => e.event_type === "PERMISSION_GRANTED") ?? [];
-    const requests = events?.filter((e: any) => e.event_type === "SPOT_REQUESTED") ?? [];
-    const cancellations = events?.filter((e: any) => ["REQUEST_CANCELLED", "REQUEST_DECLINED"].includes(e.event_type)) ?? [];
-    const filtered = activeType === "ALL" ? (events ?? []) : events?.filter((e: any) => e.event_type === activeType) ?? [];
+    const permissions = events?.filter((e: any) => e.eventType === "PERMISSION_GRANTED") ?? [];
+    const requests = events?.filter((e: any) => e.eventType === "SPOT_REQUESTED") ?? [];
+    const cancellations = events?.filter((e: any) => ["REQUEST_CANCELLED", "REQUEST_DECLINED"].includes(e.eventType)) ?? [];
+    const filtered = activeType === "ALL" ? (events ?? []) : events?.filter((e: any) => e.eventType === activeType) ?? [];
 
     return (
         <div className="space-y-6">
