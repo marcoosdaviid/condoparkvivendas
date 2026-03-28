@@ -221,7 +221,7 @@ export default function Dashboard() {
         {mySpots.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2 px-1">
-              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Minhas Anunciações</h3>
+              <h3 className="text-lg font-display font-semibold text-slate-900 dark:text-white">Minhas vagas publicadas</h3>
             </div>
             <AnimatePresence>
               {mySpots.map(spot => (
@@ -643,9 +643,12 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
           <a href={`tel:${spot.interestedUserPhone}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
             <Phone className="w-3.5 h-3.5" /> {spot.interestedUserPhone}
           </a>
-          <ConfirmOccupationDialog spot={spot}
-            triggerCls="border-yellow-400 bg-yellow-400 text-white hover:bg-yellow-500 mt-2 w-full h-11"
-            triggerLabel="Confirmar uso" triggerIcon={<UserCheck className="w-4 h-4 mr-2" />} asInline />
+          <div className="space-y-2 mt-2">
+            <ConfirmOccupationDialog spot={spot}
+              triggerCls="border-yellow-400 bg-yellow-400 text-white hover:bg-yellow-500 w-full h-11"
+              triggerLabel="Confirmar uso" triggerIcon={<UserCheck className="w-4 h-4 mr-2" />} asInline />
+            <DeclineUseButton spot={spot} />
+          </div>
         </div>
       )}
 
@@ -1003,6 +1006,36 @@ function ConfirmOccupationDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function DeclineUseButton({ spot }: { spot: ParkingSpot }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { mutate, isPending } = useDeclineApproval({
+    mutation: {
+      onSuccess: () => {
+        invalidateSpots(queryClient);
+        toast({ title: "Solicitação recusada", description: "A vaga voltou a estar disponível." });
+      },
+      onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro.", variant: "destructive" }),
+    },
+  });
+
+  const handleDecline = () => {
+    if (!spot.approvalToken) return;
+    mutate({ id: spot.id, data: { token: spot.approvalToken } });
+  };
+
+  return (
+    <Button
+      onClick={handleDecline}
+      disabled={isPending}
+      className="w-full h-11 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/30 dark:hover:bg-slate-800/40 text-slate-900 dark:text-white font-semibold text-sm flex items-center justify-center gap-2"
+    >
+      {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
+      <span>Recusar uso</span>
+    </Button>
   );
 }
 
