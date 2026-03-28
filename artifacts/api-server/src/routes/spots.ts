@@ -554,6 +554,35 @@ router.post("/spots/:id/decline", async (req, res): Promise<void> => {
     })
     .where(eq(parkingSpotsTable.id, spotId));
 
+  // Analytics: record REQUEST_DECLINED event
+  try {
+    const [owner] = await db.select({ name: usersTable.name, apartment: usersTable.apartment, parkingSpotNumber: usersTable.parkingSpotNumber })
+      .from(usersTable).where(eq(usersTable.id, spot.userId)).limit(1);
+    let requesterName: string | null = null;
+    let requesterApartment: string | null = null;
+    if (spot.interestedUserId) {
+      const [reqUser] = await db.select({ name: usersTable.name, apartment: usersTable.apartment })
+        .from(usersTable).where(eq(usersTable.id, spot.interestedUserId)).limit(1);
+      requesterName = reqUser?.name ?? null;
+      requesterApartment = reqUser?.apartment ?? null;
+    }
+    await db.insert(spotEventsTable).values({
+      eventType: "REQUEST_DECLINED",
+      spotId: spot.id,
+      spotNumber: owner?.parkingSpotNumber ?? null,
+      ownerId: spot.userId,
+      ownerName: owner?.name ?? null,
+      ownerApartment: owner?.apartment ?? null,
+      requesterId: spot.interestedUserId ?? null,
+      requesterName,
+      requesterApartment,
+      date: spot.date,
+      availableFrom: spot.availableFrom,
+      availableUntil: spot.availableUntil,
+      actualExitTime: null,
+    });
+  } catch (e) { /* non-blocking */ }
+
   res.json({ message: "Solicitação recusada. Vaga disponível novamente." });
 });
 
@@ -600,6 +629,29 @@ router.post("/spots/:id/cancel-interest", async (req, res): Promise<void> => {
       requestedUntil: null,
     })
     .where(eq(parkingSpotsTable.id, spotId));
+
+  // Analytics: record REQUEST_CANCELLED event
+  try {
+    const [owner] = await db.select({ name: usersTable.name, apartment: usersTable.apartment, parkingSpotNumber: usersTable.parkingSpotNumber })
+      .from(usersTable).where(eq(usersTable.id, spot.userId)).limit(1);
+    const [requester] = await db.select({ name: usersTable.name, apartment: usersTable.apartment })
+      .from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    await db.insert(spotEventsTable).values({
+      eventType: "REQUEST_CANCELLED",
+      spotId: spot.id,
+      spotNumber: owner?.parkingSpotNumber ?? null,
+      ownerId: spot.userId,
+      ownerName: owner?.name ?? null,
+      ownerApartment: owner?.apartment ?? null,
+      requesterId: userId,
+      requesterName: requester?.name ?? null,
+      requesterApartment: requester?.apartment ?? null,
+      date: spot.date,
+      availableFrom: spot.availableFrom,
+      availableUntil: spot.availableUntil,
+      actualExitTime: null,
+    });
+  } catch (e) { /* non-blocking */ }
 
   res.json({ message: "Solicitação cancelada. Vaga disponível novamente." });
 });

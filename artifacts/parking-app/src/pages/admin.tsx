@@ -67,13 +67,17 @@ function EventRow({ event }: { event: any }) {
     return (
         <TableRow className="group hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors border-slate-50 dark:border-slate-800">
             <TableCell>
-                {isPermission ? (
+                {event.event_type === "PERMISSION_GRANTED" ? (
                     <Badge className="gap-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 font-semibold border">
                         <CheckCircle2 className="w-3 h-3" /> Permissão
                     </Badge>
-                ) : (
+                ) : event.event_type === "SPOT_REQUESTED" ? (
                     <Badge className="gap-1.5 bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 font-semibold border">
                         <MessageSquare className="w-3 h-3" /> Solicitação
+                    </Badge>
+                ) : (
+                    <Badge className="gap-1.5 bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800 font-semibold border">
+                        <X className="w-3 h-3" /> {event.event_type === "REQUEST_CANCELLED" ? "Cancelado" : "Recusado"}
                     </Badge>
                 )}
             </TableCell>
@@ -141,6 +145,7 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
 
     const permissions = events?.filter((e: any) => e.event_type === "PERMISSION_GRANTED") ?? [];
     const requests = events?.filter((e: any) => e.event_type === "SPOT_REQUESTED") ?? [];
+    const cancellations = events?.filter((e: any) => ["REQUEST_CANCELLED", "REQUEST_DECLINED"].includes(e.event_type)) ?? [];
     const filtered = activeType === "ALL" ? (events ?? []) : events?.filter((e: any) => e.event_type === activeType) ?? [];
 
     return (
@@ -170,11 +175,11 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                 <Card className="bg-white dark:bg-slate-900 border-none shadow-sm rounded-3xl">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4 text-blue-500" /> Solicitações Realizadas
+                            <X className="w-4 h-4 text-rose-500" /> Cancelamentos / Recusas
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{requests.length}</div>
+                        <div className="text-3xl font-bold text-rose-600 dark:text-rose-400">{cancellations.length}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -186,15 +191,18 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                         <BarChart3 className="w-5 h-5 text-primary" /> Registro de Atividades
                     </h2>
                     <div className="flex gap-2">
-                        {(["ALL", "PERMISSION_GRANTED", "SPOT_REQUESTED"] as const).map(type => (
+                        {(["ALL", "PERMISSION_GRANTED", "SPOT_REQUESTED", "REQUEST_CANCELLED", "REQUEST_DECLINED"] as const).map(type => (
                             <Button
                                 key={type}
                                 size="sm"
                                 variant={activeType === type ? "default" : "outline"}
                                 className="rounded-xl text-xs"
-                                onClick={() => setActiveType(type)}
+                                onClick={() => setActiveType(type as any)}
                             >
-                                {type === "ALL" ? "Todos" : type === "PERMISSION_GRANTED" ? "Permissões" : "Solicitações"}
+                                {type === "ALL" ? "Todos" : 
+                                 type === "PERMISSION_GRANTED" ? "Permissões" : 
+                                 type === "SPOT_REQUESTED" ? "Solicitações" :
+                                 type === "REQUEST_CANCELLED" ? "Cancelados" : "Recusados"}
                             </Button>
                         ))}
                     </div>
