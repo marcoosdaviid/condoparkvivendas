@@ -1,7 +1,7 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 
-export type SpotEventType = "PERMISSION_GRANTED" | "SPOT_REQUESTED";
+export type SpotEventType = "PERMISSION_GRANTED" | "SPOT_REQUESTED" | "REQUEST_CANCELLED" | "REQUEST_DECLINED";
 
 export const spotEventsTable = pgTable("spot_events", {
   id: serial("id").primaryKey(),

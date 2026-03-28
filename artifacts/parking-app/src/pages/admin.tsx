@@ -20,6 +20,7 @@ import {
     CalendarDays,
     Building2,
     ArrowRight,
+    X,
 } from "lucide-react";
 
 import {
