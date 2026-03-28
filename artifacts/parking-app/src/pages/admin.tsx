@@ -21,6 +21,7 @@ import {
     Building2,
     ArrowRight,
     X,
+    Pencil,
 } from "lucide-react";
 
 import {
@@ -250,6 +251,91 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
     );
 }
 
+function EditUserDialog({ user, onSave, isPending }: { user: any, onSave: (data: any) => void, isPending: boolean }) {
+    const [open, setOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        name: user.name,
+        phone: user.phone,
+        apartment: user.apartment,
+        parkingSpotNumber: user.parkingSpotNumber || "",
+        hasParkingSpot: user.hasParkingSpot,
+        wantsToRequestSpot: user.wantsToRequestSpot
+    });
+
+    const handleSave = () => {
+        onSave(formData);
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="w-8 h-8 rounded-lg hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-900/20" title="Editar Morador">
+                    <Pencil className="w-3 h-3" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-3xl max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Editar Morador</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Nome Completo</Label>
+                        <Input
+                            placeholder="Ex: João Silva"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>WhatsApp</Label>
+                        <Input
+                            placeholder="Ex: 48999999999"
+                            value={formData.phone}
+                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Apartamento</Label>
+                        <Input
+                            placeholder="Ex: 402B"
+                            value={formData.apartment}
+                            onChange={e => setFormData({ ...formData, apartment: e.target.value })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Número da Vaga (Opcional)</Label>
+                        <Input
+                            placeholder="Ex: 15"
+                            value={formData.parkingSpotNumber}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setFormData({ ...formData, parkingSpotNumber: val, hasParkingSpot: !!val });
+                            }}
+                        />
+                    </div>
+                    <div className="flex items-center space-x-2 pt-4">
+                        <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={formData.wantsToRequestSpot}
+                            onChange={e => setFormData({ ...formData, wantsToRequestSpot: e.target.checked })}
+                            id="edit-wants"
+                        />
+                        <Label htmlFor="edit-wants" className="text-xs">Deseja solicitar vagas de vizinhos</Label>
+                    </div>
+                </div>
+                <DialogFooter className="mt-4 gap-2">
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSave} disabled={isPending}>
+                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function AdminPage() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -301,6 +387,26 @@ export default function AdminPage() {
             queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
             toast({ title: "Usuário excluído com sucesso" });
         }
+    });
+
+    const editMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: number, data: any }) => {
+            const res = await fetch(`/api/users/${id}/admin-update`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || "Falha ao atualizar usuário");
+            }
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+            toast({ title: "Usuário atualizado com sucesso" });
+        },
+        onError: (err: any) => toast({ title: "Erro na atualização", description: err.message, variant: "destructive" }),
     });
 
     const resetMutation = useMutation({
@@ -567,6 +673,11 @@ export default function AdminPage() {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <EditUserDialog 
+                                                                user={user} 
+                                                                onSave={(data) => editMutation.mutate({ id: user.id, data })}
+                                                                isPending={editMutation.isPending && (editMutation.variables as any)?.id === user.id}
+                                                            />
                                                             <Button
                                                                 variant="outline"
                                                                 size="icon"

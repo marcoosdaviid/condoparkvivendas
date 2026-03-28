@@ -183,6 +183,37 @@ router.post("/users/:id/reset-password", async (req, res): Promise<void> => {
   res.json({ message: `Senha resetada com sucesso para: ${defaultPassword}` });
 });
 
+// PUT /users/:id/admin-update (Admin)
+router.put("/users/:id/admin-update", async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  const { name, phone, apartment, parkingSpotNumber, hasParkingSpot, wantsToRequestSpot } = req.body;
+
+  if (!name || !phone || !apartment) {
+    res.status(400).json({ error: "Nome, WhatsApp e Apartamento são obrigatórios" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(usersTable)
+    .set({
+      name,
+      phone,
+      apartment,
+      parkingSpotNumber: parkingSpotNumber || null,
+      hasParkingSpot: !!hasParkingSpot,
+      wantsToRequestSpot: !!wantsToRequestSpot,
+    })
+    .where(eq(usersTable.id, id))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+
+  res.json({ message: "Usuário atualizado com sucesso", user: updated });
+});
+
 
 // POST /users/:id/change-password
 router.post("/users/:id/change-password", async (req, res): Promise<void> => {

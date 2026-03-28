@@ -53,8 +53,13 @@ const router: IRouter = Router();
 
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
+function getBrazilTime() {
+  const now = new Date();
+  return new Date(now.getTime() - (3 * 60 * 60 * 1000));
+}
+
 function todayDayOfWeek(): string {
-  return DAYS[new Date().getDay()];
+  return DAYS[getBrazilTime().getDay()];
 }
 
 // Helper: fetch a full spot row with user + interested user info
@@ -116,9 +121,9 @@ async function cleanupExpiredSpots() {
     await db.execute(sql`ALTER TABLE parking_spots ADD COLUMN IF NOT EXISTS requested_until text`);
   } catch (err) { }
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+  const brazilTime = getBrazilTime();
+  const todayStr = brazilTime.toISOString().slice(0, 10);
+  const currentTime = brazilTime.toISOString().slice(11, 16); // "HH:MM"
 
   // 1. Ocupação expirada (ONE_TIME)
   await db
@@ -170,7 +175,7 @@ async function cleanupExpiredSpots() {
 // GET /spots — spots for today (one-time + recurring)
 router.get("/spots", async (_req, res): Promise<void> => {
   await cleanupExpiredSpots();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBrazilTime().toISOString().slice(0, 10);
   const dow = todayDayOfWeek();
 
   const rows = await db
@@ -317,7 +322,7 @@ router.post("/spots", async (req, res): Promise<void> => {
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getBrazilTime().toISOString().slice(0, 10);
   const spotType = parsed.data.spotType ?? "ONE_TIME";
   const dow = todayDayOfWeek();
 
@@ -496,7 +501,7 @@ router.post("/spots/approve", async (req, res): Promise<void> => {
       occupantName: requester.name,
       occupantApartment: requester.apartment,
       carPlate: requester.carPlate ?? "Não informada",
-      expectedExitTime: spot.availableUntil,
+      expectedExitTime: spot.requestedUntil || spot.availableUntil,
     })
     .where(eq(parkingSpotsTable.id, spotId));
 
