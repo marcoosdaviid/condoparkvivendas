@@ -588,8 +588,8 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
           </Badge>
         )}
         {parkingSpotNumber && (
-          <Badge variant="outline" className="text-xs font-semibold text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600">
-            <MapPin className="w-3 h-3 mr-1" /> Vaga {parkingSpotNumber}
+          <Badge variant="outline" className="text-xs font-semibold text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 max-w-[150px] truncate">
+            <MapPin className="w-3 h-3 mr-1 shrink-0" /> Vaga {parkingSpotNumber}
           </Badge>
         )}
         <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -1275,12 +1275,12 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border-2 border-primary/20 text-primary font-bold text-lg flex items-center justify-center shadow-sm">
-              {spot.userParkingSpotNumber ?? "--"}
+            <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 border-2 border-primary/20 text-primary font-bold text-sm flex items-center justify-center shadow-sm overflow-hidden p-1">
+              <span className="truncate">{spot.userParkingSpotNumber?.substring(0, 3) || "--"}</span>
             </div>
             <div>
-              <p className="font-display font-semibold text-slate-900 dark:text-white text-lg leading-tight truncate max-w-[12rem]">
-                Vaga {spot.userParkingSpotNumber ?? "Não Informada"}
+              <p className="font-display font-semibold text-slate-900 dark:text-white text-base leading-tight">
+                Vaga {spot.userParkingSpotNumber || "Não Informada"}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                 <Building2 className="w-3 h-3" /> Apto {spot.userApartment}

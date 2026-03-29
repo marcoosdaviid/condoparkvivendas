@@ -54,8 +54,9 @@ const router: IRouter = Router();
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function getBrazilTime() {
-  const now = new Date();
-  return new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  // Robustly get Brazil time regardless of server timezone
+  const dateStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+  return new Date(dateStr);
 }
 
 function todayDayOfWeek(): string {
@@ -122,8 +123,11 @@ async function cleanupExpiredSpots() {
   } catch (err) { }
 
   const brazilTime = getBrazilTime();
-  const todayStr = brazilTime.toISOString().slice(0, 10);
-  const currentTime = brazilTime.toISOString().slice(11, 16); // "HH:MM"
+  const year = brazilTime.getFullYear();
+  const month = String(brazilTime.getMonth() + 1).padStart(2, '0');
+  const day = String(brazilTime.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+  const currentTime = `${brazilTime.getHours()}`.padStart(2, "0") + ":" + `${brazilTime.getMinutes()}`.padStart(2, "0");
 
   // 1. Ocupação expirada (ONE_TIME)
   await db
@@ -175,7 +179,8 @@ async function cleanupExpiredSpots() {
 // GET /spots — spots for today (one-time + recurring)
 router.get("/spots", async (_req, res): Promise<void> => {
   await cleanupExpiredSpots();
-  const today = getBrazilTime().toISOString().slice(0, 10);
+  const bzTime = getBrazilTime();
+  const today = `${bzTime.getFullYear()}-${String(bzTime.getMonth() + 1).padStart(2, '0')}-${String(bzTime.getDate()).padStart(2, '0')}`;
   const dow = todayDayOfWeek();
 
   const rows = await db
@@ -322,7 +327,8 @@ router.post("/spots", async (req, res): Promise<void> => {
     return;
   }
 
-  const today = getBrazilTime().toISOString().slice(0, 10);
+  const bzTime = getBrazilTime();
+  const today = `${bzTime.getFullYear()}-${String(bzTime.getMonth() + 1).padStart(2, '0')}-${String(bzTime.getDate()).padStart(2, '0')}`;
   const spotType = parsed.data.spotType ?? "ONE_TIME";
   const dow = todayDayOfWeek();
 
