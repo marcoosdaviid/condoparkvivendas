@@ -328,7 +328,7 @@ function EditUserDialog({ user, onSave, isPending }: { user: any, onSave: (data:
                 <DialogFooter className="mt-4 gap-2">
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
                     <Button onClick={handleSave} disabled={isPending}>
-                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+                        {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar alterações"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -478,7 +478,7 @@ export default function AdminPage() {
                                 />
                             </div>
                             <Button type="submit" className="w-full h-11 mt-2 font-semibold">
-                                Entrar no Painel
+                                Entrar no painel
                             </Button>
                         </form>
                     </CardContent>
@@ -511,7 +511,7 @@ export default function AdminPage() {
                         <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
                             <DialogTrigger asChild>
                                 <Button className="flex-1 sm:flex-none gap-2 rounded-xl">
-                                    <UserPlus className="w-4 h-4" /> Novo Usuário
+                                    <UserPlus className="w-4 h-4" /> Novo usuário
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="rounded-3xl max-w-lg">
@@ -565,7 +565,7 @@ export default function AdminPage() {
                                         onClick={() => addMutation.mutate(newUser)}
                                         disabled={addMutation.isPending}
                                     >
-                                        {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Cadastro"}
+                                        {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar cadastro"}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>

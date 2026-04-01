@@ -386,7 +386,7 @@ export default function AuthPage() {
                   className="w-full h-12 rounded-xl text-base shadow-lg shadow-primary/25 hover:-translate-y-0.5 transition-all"
                   disabled={isRegistering}
                 >
-                  {isRegistering ? <Loader2 className="w-5 h-5 animate-spin" /> : "Criar Conta"}
+                  {isRegistering ? <Loader2 className="w-5 h-5 animate-spin" /> : "Criar conta"}
                 </Button>
               </form>
             </TabsContent>

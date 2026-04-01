@@ -823,7 +823,7 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
           <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
             <Plus className="w-5 h-5" />
           </div>
-          <span className="text-slate-700 dark:text-slate-200">Publicar minha vaga</span>
+          <span className="text-slate-700 dark:text-slate-200">Agendar disponibilidade</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
@@ -1020,7 +1020,7 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
 
       <div className="flex flex-col items-start text-left">
         <span className="text-sm font-bold uppercase tracking-tight">
-          {activeSpot ? "REMOVER MINHA VAGA" : "TENHO VAGA AGORA"}
+          {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
         </span>
         <span className={`text-[10px] font-medium uppercase tracking-widest ${!activeSpot ? "opacity-80" : "opacity-60"}`}>
           {activeSpot ? "Vaga está ativa no sistema" : "Clique para liberar rápido"}
