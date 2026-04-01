@@ -110,20 +110,23 @@ const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 
 const getBrazilDate = () => {
-  const dateStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
-  const date = new Date(dateStr);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date()); // Formato YYYY-MM-DD
 };
 
 const getBrazilTime = () => {
-  const dateStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
-  const date = new Date(dateStr);
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  return `${h}:${min}`;
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return formatter.format(new Date());
 };
 
 const todayStr = getBrazilDate;
@@ -164,7 +167,7 @@ export default function Dashboard() {
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
 
   const instantSpot = mySpots.find(
-    (s) => s.spotType === "ONE_TIME" && s.date === getBrazilDate() && s.availableUntil === "23:59"
+    (s) => s.spotType === "ONE_TIME" && (s.availableUntil === "23:59" || s.availableUntil === "23:58")
   );
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
@@ -812,10 +815,15 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="lg" className="w-full h-14 rounded-2xl shadow-lg shadow-primary/25 font-semibold text-sm relative overflow-hidden group flex-row gap-2 px-3">
-          <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out skew-x-12" />
-          <Plus className="w-5 h-5" />
-          <span>Publicar minha vaga</span>
+        <Button 
+          variant="outline" 
+          size="lg" 
+          className="w-full h-14 rounded-2xl font-semibold text-sm border-2 border-primary/20 bg-white/50 dark:bg-slate-900/50 hover:bg-primary/5 transition-all duration-300 flex-row gap-3 px-4 group"
+        >
+          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+            <Plus className="w-5 h-5" />
+          </div>
+          <span className="text-slate-700 dark:text-slate-200">Publicar minha vaga</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
@@ -990,34 +998,42 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
     <Button 
       size="lg" 
       variant={activeSpot ? "destructive" : "default"}
-      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-row gap-3 relative overflow-hidden ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
+      className={`w-full h-16 rounded-2xl font-bold shadow-xl transition-all duration-500 flex-row gap-4 relative overflow-hidden group ${
+        !activeSpot 
+          ? "bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 border-0 shadow-emerald-500/30" 
+          : "bg-rose-500 hover:bg-rose-600 shadow-rose-500/30"
+      }`}
       onClick={handleToggle}
       disabled={isPending}
     >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+        activeSpot ? "bg-white/20 animate-pulse" : "bg-white/20"
+      }`}>
+        {isPending ? (
+          <Loader2 className="w-6 h-6 animate-spin text-white" />
+        ) : activeSpot ? (
+          <Trash2 className="w-6 h-6 text-white" />
+        ) : (
+          <CheckCircle2 className="w-6 h-6 text-white" />
+        )}
+      </div>
+
+      <div className="flex flex-col items-start text-white text-left">
+        <span className="text-lg uppercase tracking-tight">
+          {activeSpot ? "REMOVER MINHA VAGA" : "TENHO VAGA AGORA"}
+        </span>
+        <span className="text-[10px] font-medium opacity-90 uppercase tracking-widest">
+          {activeSpot ? "Deseja parar de compartilhar?" : "Clique para compartilhar rápido"}
+        </span>
+      </div>
+
       {activeSpot && (
-        <span className="absolute top-0 right-0 p-1">
-          <span className="flex h-2 w-2 relative">
+        <div className="absolute top-2 right-2">
+           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
           </span>
-        </span>
-      )}
-      
-      {isPending ? (
-        <Loader2 className="w-5 h-5 animate-spin" />
-      ) : activeSpot ? (
-        <>
-          <Trash2 className="w-5 h-5" />
-          <div className="flex flex-col items-start transition-all">
-            <span className="leading-tight text-lg font-bold uppercase tracking-tight">REMOVER MINHA VAGA</span>
-            <span className="text-[10px] opacity-80 font-normal">Sua vaga está visível para os vizinhos agora</span>
-          </div>
-        </>
-      ) : (
-        <>
-          <CheckCircle2 className="w-5 h-5" />
-          <span className="leading-tight text-lg font-bold">TENHO VAGA AGORA</span>
-        </>
+        </div>
       )}
     </Button>
   );
