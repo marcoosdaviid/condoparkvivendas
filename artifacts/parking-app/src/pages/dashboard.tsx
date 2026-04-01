@@ -168,7 +168,7 @@ export default function Dashboard() {
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
 
   const instantSpot = mySpots.find(
-    (s) => s.spotType === "ONE_TIME" && (s.availableUntil === "23:59" || s.availableUntil === "23:58")
+    (s) => s.spotType === "RECURRING" && s.availableUntil === "23:58"
   );
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
@@ -232,22 +232,26 @@ export default function Dashboard() {
 
         <div className="w-full space-y-3">
           <AnimatePresence mode="popLayout">
-            <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-              <CreateSpotDialog
-                userId={user!.id}
-                parkingSpotNumber={user?.parkingSpotNumber}
-              />
-            </motion.div>
-            
             <motion.div 
               key="instant-spot-btn" 
               initial={{ opacity: 0, scale: 0.95 }} 
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.1 }}
             >
               <InstantSpotButton 
                 userId={user!.id} 
                 activeSpot={instantSpot} 
+              />
+            </motion.div>
+
+            <motion.div 
+              key="create-spot-btn" 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <CreateSpotDialog
+                userId={user!.id}
+                parkingSpotNumber={user?.parkingSpotNumber}
               />
             </motion.div>
           </AnimatePresence>
@@ -983,10 +987,10 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
       create({
         data: {
           userId,
-          spotType: "ONE_TIME",
-          date: getBrazilDate(),
-          availableFrom: getBrazilTime(),
-          availableUntil: "23:59",
+          spotType: "RECURRING",
+          daysOfWeek: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+          availableFrom: "00:00",
+          availableUntil: "23:58", // Identificador para vaga infinita
         } as any
       });
     }
@@ -1023,7 +1027,7 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
           {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
         </span>
         <span className={`text-[10px] font-medium uppercase tracking-widest ${!activeSpot ? "opacity-80" : "opacity-60"}`}>
-          {activeSpot ? "Vaga está ativa no sistema" : "Clique para liberar rápido"}
+          {activeSpot ? "Vaga está ativa continuamente" : "Ative para liberar sem prazo"}
         </span>
       </div>
 
