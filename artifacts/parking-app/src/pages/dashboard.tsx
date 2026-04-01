@@ -1019,7 +1019,7 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
       </div>
 
       <div className="flex flex-col items-start text-left">
-        <span className="text-sm font-bold uppercase tracking-tight">
+        <span className="text-sm font-bold tracking-tight">
           {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
         </span>
         <span className={`text-[10px] font-medium uppercase tracking-widest ${!activeSpot ? "opacity-80" : "opacity-60"}`}>
