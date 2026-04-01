@@ -1248,7 +1248,7 @@ function RequestSpotDialog({ spot, currentUser }: { spot: ParkingSpot; currentUs
     <Dialog>
       <DialogTrigger asChild>
         <Button
-          className="w-full h-11 rounded-2xl font-semibold text-sm gap-2 bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-500/20"
+          className="w-full h-11 rounded-2xl font-semibold text-sm gap-2 bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20"
         >
           <MessageCircle className="w-4 h-4" /> Solicitar vaga
         </Button>
