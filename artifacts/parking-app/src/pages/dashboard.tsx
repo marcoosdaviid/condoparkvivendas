@@ -1026,9 +1026,6 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
         <span className="text-sm font-bold tracking-tight">
           {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
         </span>
-        <span className={`text-[10px] font-medium uppercase tracking-widest ${!activeSpot ? "opacity-80" : "opacity-60"}`}>
-          {activeSpot ? "Vaga está ativa continuamente" : "Ative para liberar sem prazo"}
-        </span>
       </div>
 
       {activeSpot && (
