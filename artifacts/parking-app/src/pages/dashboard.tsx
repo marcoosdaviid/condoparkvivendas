@@ -990,16 +990,26 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
     <Button 
       size="lg" 
       variant={activeSpot ? "destructive" : "default"}
-      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-col gap-0.5 ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
+      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-col gap-0.5 relative overflow-hidden ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
       onClick={handleToggle}
       disabled={isPending}
     >
+      {activeSpot && (
+        <span className="absolute top-0 right-0 p-1">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+          </span>
+        </span>
+      )}
+      
       {isPending ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : activeSpot ? (
         <>
-          <LogOut className="w-4 h-4 mb-0.5 rotate-180" />
-          <span className="leading-tight text-xs uppercase tracking-tight">Sua vaga está disponível • Desativar</span>
+          <Trash2 className="w-4 h-4 mb-0.5" />
+          <span className="leading-tight text-lg font-bold uppercase tracking-tight">REMOVER MINHA VAGA</span>
+          <span className="text-[10px] opacity-80 font-normal">Sua vaga está visível para os vizinhos agora</span>
         </>
       ) : (
         <>
