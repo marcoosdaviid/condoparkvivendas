@@ -158,6 +158,7 @@ const invalidateRequests = (qc: ReturnType<typeof useQueryClient>) =>
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const queryClient = useQueryClient();
   const { user, logout, login } = useAuth();
   const { data: spots, isLoading: spotsLoading } = useGetAvailableSpots();
   const { data: requests, isLoading: requestsLoading } = useGetSpotRequests();
@@ -247,7 +248,6 @@ export default function Dashboard() {
               <InstantSpotButton 
                 userId={user!.id} 
                 activeSpot={instantSpot} 
-                onSuccess={() => invalidateSpots(queryClient)}
               />
             </motion.div>
           </AnimatePresence>
@@ -955,12 +955,12 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
   );
 }
 
-function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; activeSpot?: ParkingSpot; onSuccess: () => void }) {
+function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?: ParkingSpot }) {
   const { mutate: create, isPending: isCreating } = useCreateSpot({
     mutation: {
       onSuccess: () => {
         toast({ title: "Vaga Ativada!", description: "Sua vaga agora está visível para os vizinhos até o fim do dia." });
-        onSuccess();
+        setTimeout(() => window.location.reload(), 1000); // Aguarda o toast antes de recarregar
       }
     }
   });
@@ -969,7 +969,7 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
     mutation: {
       onSuccess: () => {
         toast({ title: "Vaga Desativada", description: "Sua vaga não está mais disponível para empréstimo imediato." });
-        onSuccess();
+        setTimeout(() => window.location.reload(), 1000); // Aguarda o toast trước khi recarregar
       }
     }
   });
@@ -997,41 +997,41 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
   return (
     <Button 
       size="lg" 
-      variant={activeSpot ? "destructive" : "default"}
-      className={`w-full h-16 rounded-2xl font-bold shadow-xl transition-all duration-500 flex-row gap-4 relative overflow-hidden group ${
+      variant={activeSpot ? "outline" : "default"}
+      className={`w-full h-14 rounded-2xl font-bold transition-all duration-300 flex-row gap-3 relative overflow-hidden ${
         !activeSpot 
-          ? "bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 border-0 shadow-emerald-500/30" 
-          : "bg-rose-500 hover:bg-rose-600 shadow-rose-500/30"
+          ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20" 
+          : "border-2 border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-400 dark:bg-rose-950/20 dark:hover:bg-rose-950/30 shadow-none"
       }`}
       onClick={handleToggle}
       disabled={isPending}
     >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-        activeSpot ? "bg-white/20 animate-pulse" : "bg-white/20"
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+        !activeSpot ? "bg-white/20" : "bg-rose-100 dark:bg-rose-900/40"
       }`}>
         {isPending ? (
-          <Loader2 className="w-6 h-6 animate-spin text-white" />
+          <Loader2 className="w-5 h-5 animate-spin" />
         ) : activeSpot ? (
-          <Trash2 className="w-6 h-6 text-white" />
+          <Trash2 className="w-5 h-5" />
         ) : (
-          <CheckCircle2 className="w-6 h-6 text-white" />
+          <CheckCircle2 className="w-5 h-5" />
         )}
       </div>
 
-      <div className="flex flex-col items-start text-white text-left">
-        <span className="text-lg uppercase tracking-tight">
+      <div className="flex flex-col items-start text-left">
+        <span className="text-sm font-bold uppercase tracking-tight">
           {activeSpot ? "REMOVER MINHA VAGA" : "TENHO VAGA AGORA"}
         </span>
-        <span className="text-[10px] font-medium opacity-90 uppercase tracking-widest">
-          {activeSpot ? "Deseja parar de compartilhar?" : "Clique para compartilhar rápido"}
+        <span className={`text-[10px] font-medium uppercase tracking-widest ${!activeSpot ? "opacity-80" : "opacity-60"}`}>
+          {activeSpot ? "Vaga está ativa no sistema" : "Clique para liberar rápido"}
         </span>
       </div>
 
       {activeSpot && (
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-3">
            <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
           </span>
         </div>
       )}

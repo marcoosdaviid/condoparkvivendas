@@ -93,6 +93,9 @@ export interface ParkingSpot {
   occupantApartment?: string | null;
   carPlate?: string | null;
   expectedExitTime?: string | null;
+  requestedDays?: string[] | null;
+  requestedFrom?: string | null;
+  requestedUntil?: string | null;
   createdAt: string;
 }
 
@@ -111,6 +114,7 @@ export interface CreateSpotInput {
   availableFrom: string;
   availableUntil: string;
   dates?: string[] | null;
+  requestedDays?: string[] | null;
 }
 
 export interface ExpressInterestInput {
