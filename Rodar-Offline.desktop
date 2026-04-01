@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=CondoPark Offline
+Comment=Inicia o projeto CondoPark modo Offline Local
+Exec=gnome-terminal -- bash -c "cd /home/ask212/Documentos/projects/condoparkvivendas/condoparkvivendas && ./start-offline.sh; exec bash"
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=Development;
+Terminal=true

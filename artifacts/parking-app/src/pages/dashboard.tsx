@@ -109,7 +109,24 @@ const changePasswordSchema = z.object({
 const getInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const getBrazilDate = () => {
+  const dateStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+  const date = new Date(dateStr);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const getBrazilTime = () => {
+  const dateStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+  const date = new Date(dateStr);
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+};
+
+const todayStr = getBrazilDate;
 
 const DAYS_OF_WEEK = [
   { key: "sun", label: "Dom" },
@@ -145,6 +162,10 @@ export default function Dashboard() {
   const mySpots = spots?.filter((s) => s.userId === user?.id) || [];
   const otherSpots = spots?.filter((s) => s.userId !== user?.id) || [];
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
+
+  const instantSpot = mySpots.find(
+    (s) => s.spotType === "ONE_TIME" && s.date === getBrazilDate() && s.availableUntil === "23:59"
+  );
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
   return (
@@ -205,13 +226,25 @@ export default function Dashboard() {
           <p className="text-slate-500 dark:text-slate-400 mt-1">Compartilhe ou encontre uma vaga hoje.</p>
         </div>
 
-        {/* BOTÕES DE AÇÃO RÁPIDA */}
-        <div className="w-full">
+        <div className="w-full space-y-3">
           <AnimatePresence mode="popLayout">
             <motion.div key="create-spot-btn" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
               <CreateSpotDialog
                 userId={user!.id}
                 parkingSpotNumber={user?.parkingSpotNumber}
+              />
+            </motion.div>
+            
+            <motion.div 
+              key="instant-spot-btn" 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <InstantSpotButton 
+                userId={user!.id} 
+                activeSpot={instantSpot} 
+                onSuccess={() => invalidateSpots(queryClient)}
               />
             </motion.div>
           </AnimatePresence>
@@ -911,6 +944,70 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; activeSpot?: ParkingSpot; onSuccess: () => void }) {
+  const { mutate: create, isPending: isCreating } = useCreateSpot({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Vaga Ativada!", description: "Sua vaga agora está visível para os vizinhos até o fim do dia." });
+        onSuccess();
+      }
+    }
+  });
+
+  const { mutate: remove, isPending: isRemoving } = useRemoveSpot({
+    mutation: {
+      onSuccess: () => {
+        toast({ title: "Vaga Desativada", description: "Sua vaga não está mais disponível para empréstimo imediato." });
+        onSuccess();
+      }
+    }
+  });
+
+  const { toast } = useToast();
+
+  const handleToggle = () => {
+    if (activeSpot) {
+      remove({ id: activeSpot.id });
+    } else {
+      create({
+        data: {
+          userId,
+          spotType: "ONE_TIME",
+          date: getBrazilDate(),
+          availableFrom: getBrazilTime(),
+          availableUntil: "23:59",
+        } as any
+      });
+    }
+  };
+
+  const isPending = isCreating || isRemoving;
+
+  return (
+    <Button 
+      size="lg" 
+      variant={activeSpot ? "destructive" : "default"}
+      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-col gap-0.5 ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
+      onClick={handleToggle}
+      disabled={isPending}
+    >
+      {isPending ? (
+        <Loader2 className="w-5 h-5 animate-spin" />
+      ) : activeSpot ? (
+        <>
+          <LogOut className="w-4 h-4 mb-0.5 rotate-180" />
+          <span className="leading-tight text-xs uppercase tracking-tight">Sua vaga está disponível • Desativar</span>
+        </>
+      ) : (
+        <>
+          <CheckCircle2 className="w-4 h-4 mb-0.5" />
+          <span className="leading-tight text-lg font-bold">TENHO VAGA AGORA</span>
+        </>
+      )}
+    </Button>
   );
 }
 
