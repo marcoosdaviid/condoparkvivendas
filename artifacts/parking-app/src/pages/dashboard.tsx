@@ -168,7 +168,8 @@ export default function Dashboard() {
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
 
   const instantSpot = mySpots.find(
-    (s) => s.spotType === "RECURRING" && s.availableUntil === "23:58"
+    (s) => (s.spotType === "RECURRING" && s.availableUntil === "23:58") ||
+           (s.spotType === "ONE_TIME" && (s.availableUntil === "23:59" || s.availableUntil === "23:58"))
   );
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
