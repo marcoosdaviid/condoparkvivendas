@@ -812,10 +812,10 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="lg" className="w-full h-14 rounded-2xl shadow-lg shadow-primary/25 font-semibold text-sm relative overflow-hidden group flex-col gap-0.5 px-3">
+        <Button size="lg" className="w-full h-14 rounded-2xl shadow-lg shadow-primary/25 font-semibold text-sm relative overflow-hidden group flex-row gap-2 px-3">
           <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out skew-x-12" />
-          <Plus className="w-4 h-4 mb-0.5" />
-          <span className="leading-tight">Publicar minha vaga</span>
+          <Plus className="w-5 h-5" />
+          <span>Publicar minha vaga</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md rounded-3xl p-6">
@@ -990,7 +990,7 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
     <Button 
       size="lg" 
       variant={activeSpot ? "destructive" : "default"}
-      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-col gap-0.5 relative overflow-hidden ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
+      className={`w-full h-14 rounded-2xl font-semibold shadow-lg transition-all duration-300 flex-row gap-3 relative overflow-hidden ${!activeSpot ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" : "shadow-destructive/20"}`}
       onClick={handleToggle}
       disabled={isPending}
     >
@@ -1007,13 +1007,15 @@ function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; 
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : activeSpot ? (
         <>
-          <Trash2 className="w-4 h-4 mb-0.5" />
-          <span className="leading-tight text-lg font-bold uppercase tracking-tight">REMOVER MINHA VAGA</span>
-          <span className="text-[10px] opacity-80 font-normal">Sua vaga está visível para os vizinhos agora</span>
+          <Trash2 className="w-5 h-5" />
+          <div className="flex flex-col items-start transition-all">
+            <span className="leading-tight text-lg font-bold uppercase tracking-tight">REMOVER MINHA VAGA</span>
+            <span className="text-[10px] opacity-80 font-normal">Sua vaga está visível para os vizinhos agora</span>
+          </div>
         </>
       ) : (
         <>
-          <CheckCircle2 className="w-4 h-4 mb-0.5" />
+          <CheckCircle2 className="w-5 h-5" />
           <span className="leading-tight text-lg font-bold">TENHO VAGA AGORA</span>
         </>
       )}
