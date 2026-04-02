@@ -85,14 +85,9 @@ function EventRow({ event }: { event: any }) {
             <TableCell>
                 <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-sm">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.ownerName ?? "–"}</span>
-                        <span className="text-slate-400">Apto {event.ownerApartment ?? "–"}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.requesterName ?? "–"}</span>
+                        <span className="text-slate-400">Apto {event.requesterApartment ?? "–"}</span>
                     </div>
-                    {event.spotNumber && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-800 dark:bg-sky-900/10 dark:text-sky-400">
-                            <ParkingCircle className="w-2.5 h-2.5 mr-0.5" /> Vaga {event.spotNumber}
-                        </Badge>
-                    )}
                 </div>
             </TableCell>
             <TableCell>
@@ -101,9 +96,14 @@ function EventRow({ event }: { event: any }) {
             <TableCell>
                 <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5 text-sm">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.requesterName ?? "–"}</span>
-                        <span className="text-slate-400">Apto {event.requesterApartment ?? "–"}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">{event.ownerName ?? "–"}</span>
+                        <span className="text-slate-400">Apto {event.ownerApartment ?? "–"}</span>
                     </div>
+                    {event.spotNumber && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-800 dark:bg-sky-900/10 dark:text-sky-400">
+                            <ParkingCircle className="w-2.5 h-2.5 mr-0.5" /> Vaga {event.spotNumber}
+                        </Badge>
+                    )}
                 </div>
             </TableCell>
             <TableCell>
@@ -214,9 +214,9 @@ function AnalyticsTab({ isAuthenticated }: { isAuthenticated: boolean }) {
                         <TableHeader className="bg-slate-50/50 dark:bg-slate-800/30">
                             <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
                                 <TableHead className="font-bold py-4">Tipo</TableHead>
-                                <TableHead className="font-bold">Dono da Vaga</TableHead>
-                                <TableHead className="font-bold w-8"></TableHead>
                                 <TableHead className="font-bold">Solicitante</TableHead>
+                                <TableHead className="font-bold w-8"></TableHead>
+                                <TableHead className="font-bold">Dono da Vaga</TableHead>
                                 <TableHead className="font-bold">Data</TableHead>
                                 <TableHead className="font-bold">Horário</TableHead>
                                 <TableHead className="font-bold">Registrado em</TableHead>
