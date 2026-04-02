@@ -135,6 +135,11 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const isVagaLivre = (s: any) => 
+  s.spotType === "RECURRING" && 
+  s.availableUntil === "23:58" && 
+  s.daysOfWeek?.length === 7;
+
 const todayStr = getBrazilDate;
 
 const DAYS_OF_WEEK = [
@@ -173,10 +178,7 @@ export default function Dashboard() {
   const otherSpots = spots?.filter((s) => s.userId !== user?.id) || [];
   const myOccupiedSpot = otherSpots.find((s) => s.interestedUserId === user?.id && s.status === "OCCUPIED");
 
-  const instantSpot = mySpots.find(
-    (s) => (s.spotType === "RECURRING" && s.availableUntil === "23:58") ||
-           (s.spotType === "ONE_TIME" && (s.availableUntil === "23:59" || s.availableUntil === "23:58"))
-  );
+  const instantSpot = mySpots.find(isVagaLivre);
   const [showShareModal, setShowShareModal] = useState(false);
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
@@ -665,20 +667,24 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
 
       <div className="flex items-center gap-2 flex-wrap">
         <Badge className={`border-0 text-xs font-bold uppercase tracking-wider ${st.color}`}>{st.label}</Badge>
-        {spot.spotType === "RECURRING" && (
+        {isVagaLivre(spot) ? (
+          <Badge className="text-xs font-bold bg-indigo-600 text-white border-0 shadow-sm">
+            <CheckCircle2 className="w-3 h-3 mr-1" /> Vaga Livre ⚡
+          </Badge>
+        ) : spot.spotType === "RECURRING" ? (
           <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
             <RotateCcw className="w-3 h-3 mr-1" /> Recorrente
           </Badge>
-        )}
+        ) : null}
         {parkingSpotNumber && (
           <Badge variant="outline" className="text-xs font-semibold text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 max-w-[150px] truncate">
             <MapPin className="w-3 h-3 mr-1 shrink-0" /> Vaga {parkingSpotNumber}
           </Badge>
         )}
         <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5" /> {spot.availableFrom} às {spot.availableUntil}
+          <Clock className="w-3.5 h-3.5" /> {isVagaLivre(spot) ? "Disponível agora (sem prazo)" : `${spot.availableFrom} às ${spot.availableUntil}`}
         </span>
-        {spot.date && (
+        {!isVagaLivre(spot) && spot.date && (
           <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
             <CalendarDays className="w-3.5 h-3.5" /> {spot.date.split("-").reverse().join("/")}
           </span>
@@ -705,7 +711,7 @@ function OwnerSpotCard({ spot, parkingSpotNumber }: { spot: ParkingSpot; parking
         </AlertDialog>
       </div>
 
-      {recurringLabel && (
+      {recurringLabel && !isVagaLivre(spot) && (
         <p className="text-xs text-primary/80 font-medium">{recurringLabel}</p>
       )}
 
@@ -769,7 +775,9 @@ function OccupantSpotCard({ spot }: { spot: ParkingSpot }) {
         </div>
         <div>
           <p className="font-bold text-green-800 dark:text-green-300 text-sm leading-tight">Você está usando esta vaga</p>
-          <p className="text-xs text-green-600 dark:text-green-500">Sua previsão de saída: {spot.expectedExitTime || spot.availableUntil}</p>
+          <p className="text-xs text-green-600 dark:text-green-500">
+            {isVagaLivre(spot) ? "Vaga livre sem prazo" : `Sua previsão de saída: ${spot.expectedExitTime || spot.availableUntil}`}
+          </p>
         </div>
       </div>
 
@@ -789,7 +797,9 @@ function OccupantSpotCard({ spot }: { spot: ParkingSpot }) {
           </div>
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
-          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {spot.availableFrom} – {spot.availableUntil}</span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {isVagaLivre(spot) ? "Disponibilidade Imediata" : `${spot.availableFrom} – ${spot.availableUntil}`}
+          </span>
           {spot.carPlate && <span className="flex items-center gap-1"><Car className="w-3 h-3" /> {spot.carPlate}</span>}
         </div>
       </div>
@@ -1466,12 +1476,16 @@ function SpotCard({ spot, currentUser }: { spot: ParkingSpot; currentUser: { id:
           <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
             <Clock className="w-5 h-5 text-primary shrink-0" />
             <span className="text-xl font-display font-bold">
-              {spot.availableFrom} – {spot.availableUntil}
+              {isVagaLivre(spot) ? "Disponível Agora" : `${spot.availableFrom} – ${spot.availableUntil}`}
             </span>
           </div>
           
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-            {spot.spotType === "RECURRING" ? (
+            {isVagaLivre(spot) ? (
+              <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold text-[15px]">
+                <CheckCircle2 className="w-4 h-4" /> Vaga Livre ⚡
+              </span>
+            ) : spot.spotType === "RECURRING" ? (
               <span className="flex items-center gap-1.5 text-primary font-medium text-[15px]">
                 <RotateCcw className="w-4 h-4" /> {recurringLabel}
               </span>
