@@ -177,6 +177,7 @@ export default function Dashboard() {
     (s) => (s.spotType === "RECURRING" && s.availableUntil === "23:58") ||
            (s.spotType === "ONE_TIME" && (s.availableUntil === "23:59" || s.availableUntil === "23:58"))
   );
+  const [showShareModal, setShowShareModal] = useState(false);
   const myRequest = requests?.find((r) => r.userId === user?.id);
 
   return (
@@ -246,7 +247,8 @@ export default function Dashboard() {
             >
               <InstantSpotButton 
                 userId={user!.id} 
-                activeSpot={instantSpot} 
+                activeSpot={instantSpot}
+                onSuccess={() => setShowShareModal(true)}
               />
             </motion.div>
 
@@ -307,7 +309,41 @@ export default function Dashboard() {
                     <SpotCard spot={spot} currentUser={user!} />
                   </motion.div>
                 ))}
-              </div>
+                <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+        <DialogContent className="rounded-3xl sm:max-w-md p-6 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-green-500" />
+          <DialogHeader className="space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-center text-xl font-display font-bold">Tudo pronto! Sua vaga está livre.</DialogTitle>
+            <DialogDescription className="text-center text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+              Compartilhe no grupo do condomínio e ajude os vizinhos!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold gap-2 text-base shadow-lg shadow-green-500/20"
+              onClick={() => {
+                const appUrl = window.location.origin + (import.meta.env.BASE_URL || "/");
+                const msg = `Olá! Liberei minha vaga AGORA no CondoPark Vivendas. Quem estiver precisando de vaga, pode solicitar por aqui:\n\n${appUrl}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                setShowShareModal(false);
+              }}
+            >
+              <WhatsAppIcon className="w-5 h-5" /> Compartilhar no WhatsApp
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full h-11 rounded-xl text-slate-500 font-medium"
+              onClick={() => setShowShareModal(false)}
+            >
+              Agora não
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
             )}
           </div>
         </div>
@@ -966,16 +1002,15 @@ function CreateSpotDialog({ userId, parkingSpotNumber }: {
   );
 }
 
-function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?: ParkingSpot }) {
+function InstantSpotButton({ userId, activeSpot, onSuccess }: { userId: number; activeSpot?: ParkingSpot; onSuccess: () => void }) {
   const queryClient = useQueryClient();
-  const [showShareModal, setShowShareModal] = useState(false);
   const { toast } = useToast();
 
   const { mutate: create, isPending: isCreating } = useCreateSpot({
     mutation: {
       onSuccess: () => {
         invalidateSpots(queryClient);
-        setShowShareModal(true);
+        onSuccess();
       },
       onError: (err: any) => toast({ title: "Erro", description: err?.data?.error || "Ocorreu um erro ao ativar vaga.", variant: "destructive" }),
     }
@@ -1009,84 +1044,45 @@ function InstantSpotButton({ userId, activeSpot }: { userId: number; activeSpot?
 
   const isPending = isCreating || isRemoving;
 
-  const handleShare = () => {
-    const appUrl = window.location.origin + (import.meta.env.BASE_URL || "/");
-    const msg = `Olá! Liberei minha vaga AGORA no CondoPark Vivendas. Quem estiver precisando de vaga, pode solicitar por aqui:\n\n${appUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-    setShowShareModal(false);
-  };
-
   return (
-    <>
-      <Button 
-        size="lg" 
-        variant={activeSpot ? "outline" : "default"}
-        className={`w-full h-14 rounded-2xl font-bold transition-all duration-300 flex-row gap-3 relative overflow-hidden ${
-          !activeSpot 
-            ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20" 
-            : "border-2 border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-400 dark:bg-rose-950/20 dark:hover:bg-rose-950/30 shadow-none"
-        }`}
-        onClick={handleToggle}
-        disabled={isPending}
-      >
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-          !activeSpot ? "bg-white/20" : "bg-rose-100 dark:bg-rose-900/40"
-        }`}>
-          {isPending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : activeSpot ? (
-            <Trash2 className="w-5 h-5" />
-          ) : (
-            <CheckCircle2 className="w-5 h-5" />
-          )}
-        </div>
+    <Button 
+      size="lg" 
+      variant={activeSpot ? "outline" : "default"}
+      className={`w-full h-14 rounded-2xl font-bold transition-all duration-300 flex-row gap-3 relative overflow-hidden ${
+        !activeSpot 
+          ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20" 
+          : "border-2 border-rose-200 text-rose-600 bg-rose-50/50 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-400 dark:bg-rose-950/20 dark:hover:bg-rose-950/30 shadow-none"
+      }`}
+      onClick={handleToggle}
+      disabled={isPending}
+    >
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+        !activeSpot ? "bg-white/20" : "bg-rose-100 dark:bg-rose-900/40"
+      }`}>
+        {isPending ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : activeSpot ? (
+          <Trash2 className="w-5 h-5" />
+        ) : (
+          <CheckCircle2 className="w-5 h-5" />
+        )}
+      </div>
 
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-bold tracking-tight">
-            {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
+      <div className="flex flex-col items-start text-left">
+        <span className="text-sm font-bold tracking-tight">
+          {activeSpot ? "Remover minha vaga" : "Tenho vaga agora"}
+        </span>
+      </div>
+
+      {activeSpot && (
+        <div className="absolute top-2 right-3">
+           <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
           </span>
         </div>
-
-        {activeSpot && (
-          <div className="absolute top-2 right-3">
-             <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-            </span>
-          </div>
-        )}
-      </Button>
-
-      <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
-        <DialogContent className="rounded-3xl sm:max-w-md p-6 overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-green-500" />
-          <DialogHeader className="space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2 text-green-600 dark:text-green-400">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <DialogTitle className="text-center text-xl font-display font-bold">Tudo pronto! Sua vaga está livre.</DialogTitle>
-            <DialogDescription className="text-center text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-              Compartilhe no grupo do condomínio e ajude os vizinhos!
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 mt-4">
-            <Button 
-              className="w-full h-12 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold gap-2 text-base shadow-lg shadow-green-500/20"
-              onClick={handleShare}
-            >
-              <WhatsAppIcon className="w-5 h-5" /> Compartilhar no WhatsApp
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full h-11 rounded-xl text-slate-500 font-medium"
-              onClick={() => setShowShareModal(false)}
-            >
-              Agora não
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      )}
+    </Button>
   );
 }
 
